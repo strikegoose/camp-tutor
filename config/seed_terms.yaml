@@ -1,0 +1,61 @@
+# 种子术语词典(config 数据,学科相关词全部在此,代码不内置)
+# canonical = 权威写法;variants = 已确认的 ASR 误转写形;category 仅作分组
+# 管道以此起步,经拼音聚类候选→裁决→扩充为词典 v1
+version: seed-2026-08-26
+terms:
+  - {canonical: 至简合学, variants: [智简合学, 质检合学, 至简颌学, 智简颌学], category: 机构}
+  - {canonical: 功能合学, variants: [功能颌学], category: 学科}
+  - {canonical: 合学, variants: [颌学, 𬌗学, 和学], category: 学科}
+  - {canonical: 维也纳合学, variants: [维也纳颌学], category: 学科}
+  - {canonical: 颌平面, variants: [合平面, 𬌗平面], category: 解剖}
+  - {canonical: 咬合, variants: [𬌗, 咬颌], category: 临床}
+  - {canonical: 早矫, variants: [早期矫正, 早期矫治], category: 临床, note: 同义非纠错}
+  - {canonical: 错合畸形, variants: [错颌畸形, 错𬌗畸形], category: 临床}
+  - {canonical: 牙合畸形, variants: [牙面畸形], category: 临床}
+  - {canonical: 安氏分类, variants: [安式分类, 安氏分析法], category: 诊断}
+  - {canonical: Ⅱ类, variants: [二类, 2类], category: 诊断, note: 罗马数字统一}
+  - {canonical: Ⅲ类, variants: [三类, 3类], category: 诊断, note: 罗马数字统一}
+  - {canonical: Ⅰ类, variants: [一类, 1类], category: 诊断, note: 罗马数字统一}
+  - {canonical: 高角, variants: [高角型], category: 诊断, note: 同义非纠错}
+  - {canonical: 低角, variants: [低角型], category: 诊断, note: 同义非纠错}
+  - {canonical: 均角, variants: [], category: 诊断}
+  - {canonical: 凸面型, variants: [突面型], category: 诊断}
+  - {canonical: 凹面型, variants: [], category: 诊断}
+  - {canonical: 直面型, variants: [], category: 诊断}
+  - {canonical: 牙弓, variants: [牙工], category: 解剖}
+  - {canonical: 上颌, variants: [上颚], category: 解剖}
+  - {canonical: 下颌, variants: [下颚], category: 解剖}
+  - {canonical: 髁突, variants: [踝突, 科突], category: 解剖}
+  - {canonical: 颞下颌关节, variants: [聂下颌关节, 颞颌关节], category: 解剖}
+  - {canonical: 磨牙, variants: [], category: 解剖}
+  - {canonical: 乳磨牙, variants: [], category: 解剖}
+  - {canonical: 恒牙列, variants: [], category: 解剖}
+  - {canonical: 替牙期, variants: [], category: 临床}
+  - {canonical: 功能性矫治器, variants: [功能矫治器], category: 工具, note: 同义非纠错}
+  - {canonical: 肌功能训练, variants: [肌肉训练], category: 工具, note: 同义非纠错}
+  - {canonical: 王悦颖, variants: [王月颖, 王悦影], category: 讲师}
+  - {canonical: 郑旭, variants: [郑旭医生], category: 讲师, note: 去称谓}
+  - {canonical: 张磊, variants: [], category: 讲师}
+  - {canonical: 杨宇, variants: [], category: 讲师}
+  - {canonical: 陈婷, variants: [], category: 讲师}
+  - {canonical: 肖凌, variants: [], category: 讲师}
+  - {canonical: 张茜, variants: [张倩], category: 讲师}
+  - {canonical: 雷小芳, variants: [], category: 讲师}
+  - {canonical: 刘晓艳, variants: [], category: 讲师}
+  - {canonical: 王小艳, variants: [], category: 讲师}
+  - {canonical: 生长发育, variants: [生长发与], category: 临床}
+  - {canonical: 鉴别诊断, variants: [], category: 诊断}
+  - {canonical: 颌位, variants: [合位], category: 诊断}
+  - {canonical: 正中关系, variants: [], category: 诊断}
+  - {canonical: 咬合板, variants: [合板, 𬌗板], category: 工具}
+  - {canonical: 深覆合, variants: [深覆颌, 深复合], category: 诊断}
+  - {canonical: 深覆盖, variants: [], category: 诊断}
+  - {canonical: 反合, variants: [反颌, 地包天], category: 诊断, note: 地包天为口语同义}
+  - {canonical: 开合, variants: [开颌], category: 诊断}
+  - {canonical: 锁合, variants: [锁颌], category: 诊断}
+# 数字与单位专项校验规则(正则,代码通用)
+number_unit_rules:
+  - {pattern: '(\d+)\s*个?月', unit: 月, context: 疗程/年龄}
+  - {pattern: '(\d+)\s*mm|(\d+)\s*毫米', unit: mm, context: 距离}
+  - {pattern: '(\d+)\s*度', unit: 度, context: 角度}
+  - {pattern: '(\d+)\s*岁', unit: 岁, context: 年龄}

@@ -1,0 +1,15 @@
+# 四维框架配置(config 数据;训练营内容组织的学科框架,代码不内置)
+version: fw-2026-08-26
+framework:
+  name: 功能合学早矫四维诊断框架
+  dimensions:
+    - {id: facial, label: 面型, aliases: [面型, 颜面]}
+    - {id: skeletal, label: 骨型, aliases: [骨型, 骨骼]}
+    - {id: occlusal, label: 咬合, aliases: [咬合, 牙齿]}
+    - {id: soft_tissue, label: 软组织, aliases: [软组织, 肌肉]}
+  note: 课程名单/知识卡片/讲义可按维度打标;维度名可改可扩,代码只读 config
+card_types: [事实, 流程, 决策, 禁忌, 运营]
+gap_levels:
+  A: 缺逐字稿
+  B: 缺视频
+  C: 标题或时长不符

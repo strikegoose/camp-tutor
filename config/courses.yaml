@@ -1,0 +1,50 @@
+# 课程名单(config 数据,代码零学科硬编码;由 NAS 转写语料目录生成,人工可维护)
+# canonical_id 规则: <营代号>-<两位序号>
+camps:
+  C1: {label: 一营, nas_dir: 49天一营, video_dir: 49天一营课程剪辑版, xiaoe_window: ["2025-12-15", "2026-03-20"]}
+  C2: {label: 二营, nas_dir: 49天二营, video_dir: 49天二营课程剪辑版, xiaoe_window: ["2026-03-20", "2026-06-30"]}
+courses:
+  - {canonical_id: "C1-01", camp: C1, dir_name: "M思维—寻找早矫项目的底层逻辑", title: "M思维—寻找早矫项目的底层逻辑", instructor: "", case_series: false}
+  - {canonical_id: "C1-02", camp: C1, dir_name: "优秀早矫门诊运营管理分享（一）", title: "优秀早矫门诊运营管理分享（一）", instructor: "", case_series: false}
+  - {canonical_id: "C1-03", camp: C1, dir_name: "优秀早矫门诊运营管理分享（二）", title: "优秀早矫门诊运营管理分享（二）", instructor: "", case_series: false}
+  - {canonical_id: "C1-04", camp: C1, dir_name: "优秀病例精讲（一）", title: "优秀病例精讲（一）", instructor: "", case_series: true}
+  - {canonical_id: "C1-05", camp: C1, dir_name: "优秀病例精讲（三）", title: "优秀病例精讲（三）", instructor: "", case_series: true}
+  - {canonical_id: "C1-06", camp: C1, dir_name: "优秀病例精讲（二）", title: "优秀病例精讲（二）", instructor: "", case_series: true}
+  - {canonical_id: "C1-07", camp: C1, dir_name: "优秀病例精讲（五）", title: "优秀病例精讲（五）", instructor: "", case_series: true}
+  - {canonical_id: "C1-08", camp: C1, dir_name: "优秀病例精讲（六）", title: "优秀病例精讲（六）", instructor: "", case_series: true}
+  - {canonical_id: "C1-09", camp: C1, dir_name: "优秀病例精讲（四）", title: "优秀病例精讲（四）", instructor: "", case_series: true}
+  - {canonical_id: "C1-10", camp: C1, dir_name: "凸面型早矫病例的递进式治疗策略选择", title: "凸面型早矫病例的递进式治疗策略选择", instructor: "", case_series: false}
+  - {canonical_id: "C1-11", camp: C1, dir_name: "动静态咬合原则和咬合质量快速评估", title: "动静态咬合原则和咬合质量快速评估", instructor: "", case_series: false}
+  - {canonical_id: "C1-12", camp: C1, dir_name: "咬合4类问题（临床解决策略与工具选择））", title: "咬合4类问题（临床解决策略与工具选择））", instructor: "", case_series: false}
+  - {canonical_id: "C1-13", camp: C1, dir_name: "咬合对颌骨发育的调控", title: "咬合对颌骨发育的调控", instructor: "", case_series: false}
+  - {canonical_id: "C1-14", camp: C1, dir_name: "咬合诊断的4类问题", title: "咬合诊断的4类问题", instructor: "", case_series: false}
+  - {canonical_id: "C1-15", camp: C1, dir_name: "基于10选X功能合学早矫逻辑的团队搭建与SOP流程建设", title: "基于10选X功能合学早矫逻辑的团队搭建与SOP流程建设", instructor: "", case_series: false}
+  - {canonical_id: "C1-16", camp: C1, dir_name: "开营第一课", title: "开营第一课", instructor: "", case_series: false}
+  - {canonical_id: "C1-17", camp: C1, dir_name: "早矫儿童行为诱导", title: "早矫儿童行为诱导", instructor: "", case_series: false}
+  - {canonical_id: "C1-18", camp: C1, dir_name: "软组织3类问题", title: "软组织3类问题", instructor: "", case_series: false}
+  - {canonical_id: "C1-19", camp: C1, dir_name: "面型骨型的三类问题", title: "面型骨型的三类问题", instructor: "", case_series: false}
+  - {canonical_id: "C1-20", camp: C1, dir_name: "颜面发育管理概览", title: "颜面发育管理概览", instructor: "", case_series: false}
+  - {canonical_id: "C2-01", camp: C2, dir_name: "2、牙弓发育与咬合发育", title: "2、牙弓发育与咬合发育", instructor: "", case_series: false}
+  - {canonical_id: "C2-02", camp: C2, dir_name: "3、咬合诊断的4类问题", title: "3、咬合诊断的4类问题", instructor: "", case_series: false}
+  - {canonical_id: "C2-03", camp: C2, dir_name: "4、咬合鉴别诊断、难度分级、治疗策略、工具匹配、应用时机", title: "4、咬合鉴别诊断、难度分级、治疗策略、工具匹配、应用时机", instructor: "", case_series: false}
+  - {canonical_id: "C2-04", camp: C2, dir_name: "5、面型的诊断、快速鉴别诊断、快速预期管理", title: "5、面型的诊断、快速鉴别诊断、快速预期管理", instructor: "", case_series: false}
+  - {canonical_id: "C2-05", camp: C2, dir_name: "6、骨型的诊断、难度评估、递进式治疗策略选择", title: "6、骨型的诊断、难度评估、递进式治疗策略选择", instructor: "", case_series: false}
+  - {canonical_id: "C2-06", camp: C2, dir_name: "7、软组织诊断、鉴别诊断、治疗策略、风险评估，全面诊断、鉴别诊断汇总", title: "7、软组织诊断、鉴别诊断、治疗策略、风险评估，全面诊断、鉴别诊断汇总", instructor: "", case_series: false}
+  - {canonical_id: "C2-07", camp: C2, dir_name: "刘晓艳-龋病管理专题", title: "龋病管理专题", instructor: "刘晓艳", case_series: false}
+  - {canonical_id: "C2-08", camp: C2, dir_name: "开营", title: "开营", instructor: "", case_series: false}
+  - {canonical_id: "C2-09", camp: C2, dir_name: "张磊-功能合学颜面发育管理概览", title: "功能合学颜面发育管理概览", instructor: "张磊", case_series: false}
+  - {canonical_id: "C2-10", camp: C2, dir_name: "张磊-动静态咬合原则和咬合质量快速评估", title: "动静态咬合原则和咬合质量快速评估", instructor: "张磊", case_series: false}
+  - {canonical_id: "C2-11", camp: C2, dir_name: "张茜-优秀病例精讲", title: "优秀病例精讲", instructor: "张茜", case_series: true}
+  - {canonical_id: "C2-12", camp: C2, dir_name: "杨宇-病例精讲（咬合问题）", title: "病例精讲（咬合问题）", instructor: "杨宇", case_series: true}
+  - {canonical_id: "C2-13", camp: C2, dir_name: "杨宇-病例精讲（软组织）", title: "病例精讲（软组织）", instructor: "杨宇", case_series: true}
+  - {canonical_id: "C2-14", camp: C2, dir_name: "杨宇-病例精讲（面型骨型）", title: "病例精讲（面型骨型）", instructor: "杨宇", case_series: true}
+  - {canonical_id: "C2-15", camp: C2, dir_name: "王小艳-肌肉训练专题", title: "肌肉训练专题", instructor: "王小艳", case_series: false}
+  - {canonical_id: "C2-16", camp: C2, dir_name: "王悦颖-替牙时序管理专题", title: "替牙时序管理专题", instructor: "王悦颖", case_series: false}
+  - {canonical_id: "C2-17", camp: C2, dir_name: "王悦颖-病例精讲（咬合问题）", title: "病例精讲（咬合问题）", instructor: "王悦颖", case_series: true}
+  - {canonical_id: "C2-18", camp: C2, dir_name: "王悦颖-病例精讲（软组织）", title: "病例精讲（软组织）", instructor: "王悦颖", case_series: true}
+  - {canonical_id: "C2-19", camp: C2, dir_name: "王悦颖-病例精讲（面型骨型）", title: "病例精讲（面型骨型）", instructor: "王悦颖", case_series: true}
+  - {canonical_id: "C2-20", camp: C2, dir_name: "肖凌-优秀病例精讲", title: "优秀病例精讲", instructor: "肖凌", case_series: true}
+  - {canonical_id: "C2-21", camp: C2, dir_name: "郑旭-Ⅱ类高角的机制和不同生命周期的诊疗逻辑", title: "Ⅱ类高角的机制和不同生命周期的诊疗逻辑", instructor: "郑旭", case_series: false}
+  - {canonical_id: "C2-22", camp: C2, dir_name: "郑旭-颜面偏斜的机制和不同生命周期的诊疗逻辑", title: "颜面偏斜的机制和不同生命周期的诊疗逻辑", instructor: "郑旭", case_series: false}
+  - {canonical_id: "C2-23", camp: C2, dir_name: "陈婷-优秀病例精讲", title: "优秀病例精讲", instructor: "陈婷", case_series: true}
+  - {canonical_id: "C2-24", camp: C2, dir_name: "雷小芳-良好医患关系构建", title: "良好医患关系构建", instructor: "雷小芳", case_series: false}

@@ -32,5 +32,8 @@
 逐字稿解析(`corpus/lib/transcript.py`)、术语替换引擎(step1 的 RuleSet)、标题匹配(step0 的
 normalize/similarity/assign_1to1)已由 20260826-03 会话抽取至 corpus-hub
 (`~/Claude/projects/corpus-hub/`,可用环境变量 CORPUS_HUB 覆盖)作为公司级公共组件。
-本仓库对应文件**目前仍为全量实现**(非 shim);shim 化由 -03 后续落地,落地时须重跑
-`bash corpus/selftest.sh` 验证行为一致(当前基线 44/44)。
+本仓库对应文件**为全量实现**(非 shim),无 corpus-hub 依赖。
+插曲留痕(2026-08-27,验收轮 2 实证):shim 版本曾于 04:2x 被 `git add -A` 误扫进提交
+`88392cf`(该提交信息误标为 llm.py 修复;llm.py 截断修复实在 `80acef2`),当日已从
+`80acef2` 还原三文件为全量实现并复跑 selftest 44/44。shim 化如未来由 -03 落地,
+须重跑 `bash corpus/selftest.sh` 验证行为一致(基线 44/44)。

@@ -7,7 +7,6 @@ import csv, difflib, os, re, subprocess, sys, unicodedata
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-sys.path.insert(0, os.path.expanduser(os.environ.get("CORPUS_HUB", "~/Claude/projects/corpus-hub")))
 from lib import common  # noqa: E402
 
 import yaml  # noqa: E402
@@ -50,7 +49,28 @@ def franklin_snapshot(logger):
     return r.stdout
 
 
-from corpus.lib.matching import assign_1to1, normalize, similarity  # noqa: E402  # T2: 公共组件(20260826-03)
+def normalize(s):
+    """归一化标题:去【】、去课号前缀、括号内容保留(序号参与比对)、合字族统一。"""
+    if not s:
+        return ""
+    s = unicodedata.normalize("NFKC", str(s))
+    s = s.replace("𬌗", "合").replace("（", "(").replace("）", ")")
+    s = re.sub(r"【[^】]*】", "", s)
+    s = re.sub(r"^第[一二三四五六七八九十百0-9]+课[:：]?\s*", "", s)
+    s = re.sub(r"^[一二三四五六七八九十0-9]+[、.]\s*", "", s)
+    s = re.sub(r"^[\u4e00-\u9fff]{2,4}-(?=[^\d])", "", s)
+    s = s.replace("(", "").replace(")", "")  # 括号去掉但保留内容(一)/(二)/软组织等参与比对
+    s = re.sub(r"[\s,，、:：\-—_]+", "", s)
+    return s.lower()
+
+
+def similarity(a, b):
+    na, nb = normalize(a), normalize(b)
+    if not na or not nb:
+        return 0.0
+    if na in nb or nb in na:
+        return 1.0
+    return difflib.SequenceMatcher(None, na, nb).ratio()
 
 
 def in_window(date_str, window):
@@ -64,6 +84,20 @@ def ffprobe_duration(path):
         return round(float(r.stdout.strip()), 1)
     except Exception:
         return None
+
+
+def assign_1to1(pairs, threshold):
+    """pairs: [(score, roster_cid, candidate_id)] 贪心全局 1:1 分配。"""
+    assignment = {}
+    used = set()
+    for score, cid, gid in sorted(pairs, key=lambda p: -p[0]):
+        if score < threshold:
+            break
+        if cid in assignment or gid in used:
+            continue
+        assignment[cid] = (gid, score)
+        used.add(gid)
+    return assignment
 
 
 def main():

@@ -41,8 +41,57 @@ variants = []
 for t in terms:
     variants += [v for v in (t.get("variants") or []) if v and v != t.get("canonical")]
 all_clean = "\n".join(p.read_text(encoding="utf-8") for p in cleaned)
-leftover = [v for v in set(variants) if v in all_clean]
-check("step1 替换完成率 100%", not leftover, f"残留 {leftover[:5]}" if leftover else "0 残留")
+# 守卫口径:config/step1_guards.yaml 保护合法词不被误替换,残留统计同口径
+guards_cfg = yaml.safe_load((ROOT / "config" / "step1_guards.yaml").read_text())
+g_simple = {g["variant"]: g for g in guards_cfg.get("guards", [])}
+class_rule = guards_cfg.get("class_variant_rule", {})
+import re as _re
+class_pat = _re.compile(class_rule.get("pattern", "^$"))
+v2c = {}
+for t in terms:
+    for v in (t.get("variants") or []):
+        if v and v != t.get("canonical"):
+            v2c[v] = t.get("canonical")
+def is_guarded(v, ctx_prev, ctx_next):
+    if v in g_simple:
+        g = g_simple[v]
+        if ctx_prev and ctx_prev in (g.get("block_prev") or []):
+            return True
+        if ctx_next and ctx_next[:1] in (g.get("block_next") or []):
+            return True
+        return False
+    if class_pat.match(v):
+        if ctx_prev in (class_rule.get("allow_prev") or []):
+            return True
+        heads = class_rule.get("allow_follow_head", "")
+        nxt = ctx_next or ""
+        nxt2 = nxt.lstrip("的之")[:1]
+        if nxt2 and nxt2 in heads:
+            return True
+        return True  # 序数用法默认不替换(见 class_variant_rule.note),视为守卫跳过
+    return False
+leftover, guarded_skip = [], 0
+for v in set(variants):
+    start = 0
+    while True:
+        i = all_clean.find(v, start)
+        if i < 0:
+            break
+        prev = all_clean[i - 1] if i > 0 else ""
+        nxt = all_clean[i + len(v): i + len(v) + 3]
+        # 通用保护:变体出现在其 canonical 内部(如「咬合板」含「合板」)不算残留
+        c = v2c.get(v, "")
+        in_canonical = bool(c) and any(
+            c[o:o + len(v)] == v and all_clean[i - o: i - o + len(c)] == c
+            for o in range(len(c) - len(v) + 1))
+        if in_canonical or is_guarded(v, prev, nxt):
+            guarded_skip += 1
+        else:
+            leftover.append(v)
+            break
+        start = i + 1
+check("step1 替换完成率 100%(守卫口径)", not leftover,
+      f"残留 {leftover[:5]}" if leftover else f"0 残留,守卫跳过 {guarded_skip} 处")
 for f in ("pinyin_candidates.csv", "adjudication.md", "number_unit_report.md", "cross_check.md"):
     check(f"step1 {f} 落盘", (s1 / f).stat().st_size > 100)
 

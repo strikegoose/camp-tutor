@@ -3,11 +3,12 @@
 → 两营交叉校验 → 终稿清洗 + 100% 自检。
 学科无关:术语/守卫规则全部读 config(seed_terms.yaml / step1_guards.yaml)。
 幂等:各 LLM 阶段结果落 step1/*_raw.json,输入未变时重跑直接复用(llm.py 另有内容寻址缓存)。"""
-import csv, json, re, sys, time
+import csv, json, os, re, sys, time
 from collections import Counter, defaultdict
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, os.path.expanduser(os.environ.get("CORPUS_HUB", "~/Claude/projects/corpus-hub")))
 from lib import common, llm, transcript  # noqa: E402
 from step0_reconcile import similarity  # noqa: E402
 
@@ -117,109 +118,7 @@ def apply_human_review(dict_terms, excl, logger):
     return out
 
 
-class RuleSet:
-    """variants→canonical 替换规则:最长优先 + 守卫(前字拦截 / 序数「X类」语境规则)。"""
-
-    def __init__(self, terms, guards_cfg):
-        self.rules = []  # dict: variant, canonical, block_prev(set), class_rule(bool)
-        seen = set()
-        for t in terms:
-            canon = t["canonical"]
-            for v in t.get("variants", []) or []:
-                if not v or v == canon or v in seen:
-                    continue
-                seen.add(v)
-                self.rules.append({"variant": v, "canonical": canon,
-                                   "block_prev": set(), "block_next": set(), "class_rule": False})
-        # 1) config 守卫(按 variant 匹配)
-        for g in guards_cfg.get("guards", []) or []:
-            for r in self.rules:
-                if r["variant"] == g["variant"]:
-                    r["block_prev"] |= set(g.get("block_prev", []))
-                    r["block_next"] |= set(g.get("block_next", []))
-        # 2) 自动守卫:变体被某 canonical 包含时,包含处前字拦截(保护合法词,如「合板」⊂「咬合板」)
-        for r in self.rules:
-            v = r["variant"]
-            for t in terms:
-                p = t["canonical"]
-                if p == v:
-                    continue
-                i = p.find(v)
-                while i >= 0:
-                    if i > 0:
-                        r["block_prev"].add(p[i - 1])
-                    i = p.find(v, i + 1)
-        # 3) 序数「X类」语境规则
-        cvr = guards_cfg.get("class_variant_rule") or {}
-        self.class_re = re.compile(cvr.get("pattern", r"a^")) if cvr else None
-        self.allow_prev = set(cvr.get("allow_prev", []))
-        self.allow_follow = set(cvr.get("allow_follow_head", ""))
-        if self.class_re:
-            for r in self.rules:
-                if self.class_re.match(r["variant"]):
-                    r["class_rule"] = True
-        self.rules.sort(key=lambda r: -len(r["variant"]))
-
-    def _actionable(self, rule, text, i):
-        """位置 i 处的变体出现是否应被替换(守卫口径,自检复用)。"""
-        prev = text[i - 1] if i > 0 else ""
-        if prev in rule["block_prev"]:
-            return False
-        nxt = text[i + len(rule["variant"]):i + len(rule["variant"]) + 1]
-        if nxt and nxt in rule["block_next"]:
-            return False
-        if rule["class_rule"]:
-            if prev in self.allow_prev:
-                return True
-            f = text[i + len(rule["variant"]): i + len(rule["variant"]) + 3]
-            f = f.lstrip("的之")
-            return bool(f) and f[0] in self.allow_follow
-        return True
-
-    def apply(self, text, counter=None, skip_counter=None):
-        """全规则替换,迭代至不动点(处理链式:和学→合学→再触发更长规则);
-        出现循环(文本回到已见状态)立即停,防 A→B→A 乒乓。counter: {canonical: 次数}。"""
-        seen_states = {text}
-        for _ in range(4):
-            changed = 0
-            for r in self.rules:
-                v = r["variant"]
-                if v not in text:
-                    continue
-                out, last, n, skipped = [], 0, 0, 0
-                for m in re.finditer(re.escape(v), text):
-                    if not self._actionable(r, text, m.start()):
-                        skipped += 1
-                        continue
-                    out.append(text[last:m.start()])
-                    out.append(r["canonical"])
-                    last = m.end()
-                    n += 1
-                if n:
-                    out.append(text[last:])
-                    text = "".join(out)
-                    changed += n
-                    if counter is not None:
-                        counter[r["canonical"]] += n
-                if skipped and skip_counter is not None:
-                    skip_counter[v] += skipped
-            if not changed or text in seen_states:
-                break
-            seen_states.add(text)
-        return text
-
-    def actionable_count(self, text):
-        """自检:各 variant 在文本中「应替换而未替换」的出现数。"""
-        bad = {}
-        for r in self.rules:
-            v = r["variant"]
-            n = 0
-            for m in re.finditer(re.escape(v), text):
-                if self._actionable(r, text, m.start()):
-                    n += 1
-            if n:
-                bad[v] = n
-        return bad
+from corpus.terms import RuleSet  # noqa: E402  # T2: 公共替换引擎(20260826-03)
 
 
 # ---------- 语料加载与初稿 ----------

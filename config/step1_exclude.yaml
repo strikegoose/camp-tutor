@@ -1,8 +1,9 @@
 # 部件1 人工终审(config 数据):LLM 裁决后的剔除(方向错误/通用词/语法碎片)与补入
 # exclude: 逐对剔除(canonical+variant);非 seed 词条 variants 被剔空时整条删除
 # include: 人工补入(原批次失败未裁决、但语料证据确凿的术语对)
-version: step1-exclude-2026-08-26
+version: step1-exclude-2026-08-26b
 exclude:
+  # 2026-08-26 一轮终审(交付运行 100936)
   - {canonical: 时时, variant: 事实, reason: 方向反了;「事实」是常用词,已被误替换为「时时」污染清洗稿}
   - {canonical: 长得, variant: 长的, reason: 语法碎片;「长的」作形容词是正确用法,误替换产生「比较长得」病句}
   - {canonical: 得比较, variant: 的比较, reason: 方向反了;「的比较」是正确用法}
@@ -27,7 +28,49 @@ exclude:
   - {canonical: 他能, variant: 它能, reason: 语法碎片;「它能」是正确用法}
   - {canonical: 戴的, variant: 带的, reason: 通用字混淆;「带的(团队)」是正确用法}
   - {canonical: 戴了, variant: 带了, reason: 通用字混淆;「带了」是正确用法}
+  # 2026-08-26 二轮终审(确定性重跑 det-a 新裁决批次接受的有害对)
+  - {canonical: 覆合, variant: 符合, reason: 「符合」是高频常用词,误替换为「覆合」属严重污染}
+  - {canonical: 有颌, variant: 有合, reason: 碎片;且与「颌学→合学」形成乒乓循环(det-a 实证 C2-16 残留)}
+  - {canonical: 颌骨, variant: 合股, reason: 「合股」是合法词(合伙/合股),仅剔该 variant}
+  - {canonical: 升支, variant: 升值, reason: 「升值」是合法词}
+  - {canonical: 升支, variant: 生肢, reason: 「生肢」疑似合法搭配,保守剔除}
+  - {canonical: 正畸, variant: 正技, reason: 碎片,方向存疑}
+  - {canonical: 牙冠, variant: 牙关, reason: 「牙关」是合法词(牙关紧闭)}
+  - {canonical: 后旋, variant: 候选, reason: 「候选」是高频合法词}
+  - {canonical: 前段, variant: 前端, reason: 「前端」是常用正确写法,方向反了}
+  - {canonical: 拔除, variant: 拔出, reason: 「拔出」是合法同义用法,非误转写}
+  - {canonical: 需要, variant: 须要, reason: 「须要」是合法写法,非误转写}
+  - {canonical: 需要, variant: 续要, reason: 碎片垃圾对}
+  - {canonical: 做的, variant: 作的, reason: 语法碎片}
+  - {canonical: 做得, variant: 做的, reason: 语法碎片(「做的」是正确用法)}
+  - {canonical: 他可, variant: 它可, reason: 他/它语法碎片}
+  - {canonical: 他也, variant: 它也, reason: 他/它语法碎片}
+  - {canonical: 他颏, variant: 他可, reason: 方向混乱的碎片对}
+  - {canonical: 他髁, variant: 他可, reason: 方向混乱的碎片对}
+  - {canonical: 一步, variant: 以不, reason: 碎片垃圾对}
+  - {canonical: 一部, variant: 以不, reason: 碎片垃圾对}
+  - {canonical: 一想, variant: 以想, reason: 碎片垃圾对}
+  - {canonical: 重要, variant: 种咬, reason: 碎片垃圾对}
+  - {canonical: 是有, variant: 实有, reason: 碎片垃圾对}
+  - {canonical: 是由, variant: 实有, reason: 碎片垃圾对}
+  - {canonical: 是右, variant: 实有, reason: 碎片垃圾对}
+  - {canonical: 合面, variant: 和面, reason: 「和面」是合法词(揉面),误替换风险大}
+  - {canonical: 移了, variant: 以了, reason: 碎片垃圾对}
+  - {canonical: 方式, variant: 方是, reason: 碎片垃圾对}
+  - {canonical: 门诊, variant: 们真, reason: 碎片垃圾对}
+  - {canonical: 前后, variant: 前厚, reason: 方向存疑,「前厚」可能是合法描述}
+  - {canonical: 得非, variant: 的非, reason: 碎片垃圾对}
+  - {canonical: 戴诱, variant: 带诱, reason: 通用字混淆碎片}
+  - {canonical: 戴一, variant: 带一, reason: 通用字混淆碎片}
+  - {canonical: 畸的, variant: 肌的, reason: 碎片垃圾对}
+  - {canonical: 时候, variant: 是后, reason: 语料实证风险(「于是后来」类内含),剔除}
 include:
+  - {canonical: 曲断片, variants: [取断片], category: 影像, source: 人工, note: 二轮终审补入(「取断片」=曲面断层片误写,C2-20 等语料实证)}
+  - {canonical: 有颌骨, variants: [有合骨], category: 解剖, source: pinyin裁决, note: 二轮终审补入(合骨→颌骨家族,100936 已验证)}
+  - {canonical: 是颌骨, variants: [是合骨], category: 解剖, source: pinyin裁决, note: 二轮终审补入(合骨→颌骨家族,100936 已验证)}
+  - {canonical: 的颌骨错, variants: [的合骨错], category: 诊断, source: pinyin裁决, note: 二轮终审补入(合骨→颌骨家族,100936 已验证)}
+  - {canonical: 的颌骨错位, variants: [的合骨错位], category: 诊断, source: pinyin裁决, note: 二轮终审补入(合骨→颌骨家族,100936 已验证)}
+  - {canonical: 个颌骨, variants: [个合骨], category: 解剖, source: pinyin裁决, note: 二轮终审补入(合骨→颌骨家族,100936 已验证)}
   - {canonical: 这个颌骨, variants: [这个合骨], category: 解剖, source: pinyin裁决, note: 人工终审补入(原批次失败未裁决;合骨→颌骨家族)}
   - {canonical: 向的颌骨错, variants: [向的合骨错], category: 诊断, source: pinyin裁决, note: 人工终审补入(同上)}
   - {canonical: 向的颌骨错位, variants: [向的合骨错位], category: 诊断, source: pinyin裁决, note: 人工终审补入(同上)}

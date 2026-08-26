@@ -1,0 +1,35 @@
+# 部件1 人工终审(config 数据):LLM 裁决后的剔除(方向错误/通用词/语法碎片)与补入
+# exclude: 逐对剔除(canonical+variant);非 seed 词条 variants 被剔空时整条删除
+# include: 人工补入(原批次失败未裁决、但语料证据确凿的术语对)
+version: step1-exclude-2026-08-26
+exclude:
+  - {canonical: 时时, variant: 事实, reason: 方向反了;「事实」是常用词,已被误替换为「时时」污染清洗稿}
+  - {canonical: 长得, variant: 长的, reason: 语法碎片;「长的」作形容词是正确用法,误替换产生「比较长得」病句}
+  - {canonical: 得比较, variant: 的比较, reason: 方向反了;「的比较」是正确用法}
+  - {canonical: 的医, variant: 得一, reason: 碎片垃圾对}
+  - {canonical: 的异, variant: 得一, reason: 碎片垃圾对}
+  - {canonical: 的意, variant: 得一, reason: 碎片垃圾对}
+  - {canonical: 么它, variant: 么他, reason: 语法碎片}
+  - {canonical: 那么它, variant: 那么他, reason: 语法碎片}
+  - {canonical: 颌平, variant: 和平, reason: 「和平」是常用词,误替换风险大}
+  - {canonical: 能合, variant: 能和, reason: 碎片;「能和」是常用搭配}
+  - {canonical: 能合, variant: 能核, reason: 同「能合」家族}
+  - {canonical: 待得, variant: 戴的, reason: 碎片垃圾对}
+  - {canonical: 功能合, variant: 功能和, reason: 同「能合」家族;「功能和」是常用搭配}
+  - {canonical: 功能合, variant: 功能核, reason: 同「能合」家族}
+  - {canonical: 事实, variant: 是是, reason: 语料实证误替换(「他不是是一个打工者」)}
+  - {canonical: 事实, variant: 是事, reason: 语料实证误替换(「但是事实上」内含「是事」)}
+  - {canonical: 趋势, variant: 去是, reason: 语料实证误替换(「看上去是」内含「去是」)}
+  - {canonical: 位置, variant: 围之, reason: 语料实证误替换(「范围之内」内含「围之」)}
+  - {canonical: 去纠, variant: 去就, reason: 语料实证误替换(「看上去就」内含「去就」)}
+  - {canonical: 合骨, variant: 和骨, reason: 语料实证误替换(「面型和骨型」内含「和骨」)}
+  - {canonical: 颌骨, variant: 河谷, reason: 「河谷」是合法词(语料中作比喻),仅从该词条 variants 剔除}
+  - {canonical: 他能, variant: 它能, reason: 语法碎片;「它能」是正确用法}
+  - {canonical: 戴的, variant: 带的, reason: 通用字混淆;「带的(团队)」是正确用法}
+  - {canonical: 戴了, variant: 带了, reason: 通用字混淆;「带了」是正确用法}
+include:
+  - {canonical: 这个颌骨, variants: [这个合骨], category: 解剖, source: pinyin裁决, note: 人工终审补入(原批次失败未裁决;合骨→颌骨家族)}
+  - {canonical: 向的颌骨错, variants: [向的合骨错], category: 诊断, source: pinyin裁决, note: 人工终审补入(同上)}
+  - {canonical: 向的颌骨错位, variants: [向的合骨错位], category: 诊断, source: pinyin裁决, note: 人工终审补入(同上)}
+  - {canonical: 他的颌, variants: [他的合], category: 解剖, source: pinyin裁决, note: 人工终审补入(同上)}
+  - {canonical: 现象, variants: [线相], category: 其他, source: pinyin裁决, note: 人工终审补入(线相为同音误写)}

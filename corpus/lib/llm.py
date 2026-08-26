@@ -7,6 +7,11 @@ from . import common
 
 CACHE_DIR = common.DATA / "cache" / "llm"
 MAX_RETRIES = 4
+# 空 text(thinking-only)响应重试次数。2026-08-26 实证:DeepSeek V4 Flash 偶发
+# content 只有 thinking 块、stop_reason=end_turn、text 为空;且空响应被缓存后
+# 每次重跑秒败(缓存中毒)。空 text 一律不缓存,重打 API 自愈。
+EMPTY_RETRIES = 2
+CALLS_LOG = common.LOGS / "llm_calls.jsonl"
 
 
 def _endpoint():
@@ -50,6 +55,21 @@ def _extract_text(resp):
     return "".join(parts).strip()
 
 
+def _log_call(part, model, resp, cached, text_len, note=""):
+    """每次 LLM 调用落一行日志(stop_reason/usage/内容块类型),失败路径必落。"""
+    common.LOGS.mkdir(exist_ok=True)
+    usage = resp.get("usage", {})
+    with open(CALLS_LOG, "a", encoding="utf-8") as f:
+        f.write(json.dumps({
+            "ts": time.strftime("%F %T"), "part": part, "model": model, "cached": cached,
+            "stop_reason": resp.get("stop_reason"),
+            "content_types": [b.get("type") for b in resp.get("content", [])],
+            "input_tokens": usage.get("input_tokens", 0),
+            "output_tokens": usage.get("output_tokens", 0),
+            "text_len": text_len, "note": note,
+        }, ensure_ascii=False) + "\n")
+
+
 def _cached_call(part, model, payload, max_tokens):
     key_src = json.dumps({"model": model, "payload": payload}, ensure_ascii=False, sort_keys=True)
     key = common.sha256_text(key_src)
@@ -57,17 +77,36 @@ def _cached_call(part, model, payload, max_tokens):
     cache_file = CACHE_DIR / f"{key}.json"
     if cache_file.exists():
         resp = json.loads(cache_file.read_text(encoding="utf-8"))
+        text = _extract_text(resp)
+        usage = resp.get("usage", {})
+        if text:
+            common.record_tokens(part, model, usage.get("input_tokens", 0),
+                                 usage.get("output_tokens", 0), cached=True)
+            _log_call(part, model, resp, True, len(text))
+            return text, True
+        # 空 text 缓存条目(thinking-only 异常)不复用:删条目改走实时调用,自愈缓存中毒
+        _log_call(part, model, resp, True, 0, note="cached_empty_discarded")
+        cache_file.unlink()
+    payload = dict(payload, model=model)
+    resp, text = None, ""
+    mt = max_tokens
+    for attempt in range(1 + EMPTY_RETRIES):
+        resp = _post(dict(payload, max_tokens=mt))
         usage = resp.get("usage", {})
         common.record_tokens(part, model, usage.get("input_tokens", 0),
-                             usage.get("output_tokens", 0), cached=True)
-        return _extract_text(resp), True
-    payload = dict(payload, model=model, max_tokens=max_tokens)
-    resp = _post(payload)
-    cache_file.write_text(json.dumps(resp, ensure_ascii=False), encoding="utf-8")
-    usage = resp.get("usage", {})
-    common.record_tokens(part, model, usage.get("input_tokens", 0),
-                         usage.get("output_tokens", 0), cached=False)
-    return _extract_text(resp), False
+                             usage.get("output_tokens", 0), cached=False)
+        text = _extract_text(resp)
+        _log_call(part, model, resp, False, len(text),
+                  note="" if text else f"empty_response attempt {attempt + 1} max_tokens={mt}")
+        if text:
+            break
+        # 空 text 重试时抬高 output 预算:实证 thinking 型模型会烧光 max_tokens 只回 thinking 块
+        mt = min(mt * 2, 65536)
+        if attempt < EMPTY_RETRIES:
+            time.sleep(min(5 * (attempt + 1), 15))
+    if text:
+        cache_file.write_text(json.dumps(resp, ensure_ascii=False), encoding="utf-8")
+    return text, False
 
 
 def chat(part, prompt, system=None, model=None, max_tokens=4096, temperature=0.0):

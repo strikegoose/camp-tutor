@@ -170,16 +170,20 @@ def main():
 
     # 1) 两种策略切 chunk(全量 44 课)
     all_chunks = {"fixed": [], "semantic": []}
+    missing = []
     for course in master:
         cid = course["canonical_id"]
         cfile = cleaned_dir / f"{cid}.txt"
         src = cfile if cfile.exists() else Path(course["transcript_path"])
         if not src.exists():
-            common.notify("camp-tutor step4 缺稿", f"{cid} 无清洗稿/原稿")
+            missing.append(cid)
             continue
         t = T.parse(src.read_text(encoding="utf-8"))
         all_chunks["fixed"].extend(to_records(chunk_fixed(t.blocks), course, "fixed"))
         all_chunks["semantic"].extend(to_records(chunk_semantic(t.blocks), course, "semantic"))
+    if missing:
+        common.notify(f"step4 本轮 {len(missing)} 课缺稿:{'/'.join(missing)}",
+                      "缺稿课节跳过 chunk,明细见日志")
     logger.log(f"chunk 完成: fixed={len(all_chunks['fixed'])} semantic={len(all_chunks['semantic'])}")
 
     # 2) recall@k 实验:抽 2 课,以知识卡片 quote 为 query(答案=含该 quote 的 chunk)

@@ -15,7 +15,7 @@ import yaml  # noqa: E402
 from pypinyin import lazy_pinyin, Style  # noqa: E402
 
 PART = "step1_terms"
-VERSION = "step1-20260826-2"
+VERSION = "step1-20260826-3"
 # 模型为 thinking 型:思考计入 output budget,max_tokens 需留足;批次适当小
 BATCH = 15
 LLM_MAX_TOKENS = 16384
@@ -76,16 +76,45 @@ def load_inputs():
     master = common.read_json(common.get_run_dir() / "step0" / "courses_master.json")
     seed = yaml.safe_load((common.CONFIG / "seed_terms.yaml").read_text(encoding="utf-8"))
     guards = yaml.safe_load((common.CONFIG / "step1_guards.yaml").read_text(encoding="utf-8"))
-    return master, seed, guards
+    excl_file = common.CONFIG / "step1_exclude.yaml"
+    excl = yaml.safe_load(excl_file.read_text(encoding="utf-8")) if excl_file.exists() else {}
+    return master, seed, guards, excl
 
 
 def input_hash():
+    excl_file = common.CONFIG / "step1_exclude.yaml"
     h = common.sha256_text(
         (common.get_run_dir() / "step0" / "courses_master.json").read_text(encoding="utf-8")
         + (common.CONFIG / "seed_terms.yaml").read_text(encoding="utf-8")
         + (common.CONFIG / "step1_guards.yaml").read_text(encoding="utf-8")
+        + (excl_file.read_text(encoding="utf-8") if excl_file.exists() else "")
         + VERSION)
     return h
+
+
+def apply_human_review(dict_terms, excl, logger):
+    """人工终审:剔除 exclude 对(非 seed 词条剔空 variants 后整条删除),补入 include 条。"""
+    pairs = {(e["canonical"], e["variant"]): e["reason"] for e in excl.get("exclude", []) or []}
+    if not pairs and not excl.get("include"):
+        return dict_terms
+    removed = []
+    out = []
+    for t in dict_terms:
+        vs = [v for v in (t.get("variants") or []) if (t["canonical"], v) not in pairs]
+        for v in (t.get("variants") or []):
+            if (t["canonical"], v) in pairs:
+                removed.append(f"{t['canonical']} <= {v}")
+        t = dict(t, variants=vs)
+        if not vs and t.get("source") != "seed" and any(c == t["canonical"] for c, _ in pairs):
+            continue  # 非 seed 词条,variants 被剔空 → 整条删除
+        out.append(t)
+    for e in excl.get("include", []) or []:
+        if not any(t["canonical"] == e["canonical"] for t in out):
+            out.append({"canonical": e["canonical"], "variants": list(e.get("variants", [])),
+                        "category": e.get("category", "其他"),
+                        "source": e.get("source", "pinyin裁决"), "note": e.get("note", e.get("reason", ""))})
+    logger.log(f"人工终审: 剔除 {len(removed)} 对,补入 {len(excl.get('include', []) or [])} 条,词典 {len(out)} 条")
+    return out
 
 
 class RuleSet:
@@ -101,12 +130,13 @@ class RuleSet:
                     continue
                 seen.add(v)
                 self.rules.append({"variant": v, "canonical": canon,
-                                   "block_prev": set(), "class_rule": False})
+                                   "block_prev": set(), "block_next": set(), "class_rule": False})
         # 1) config 守卫(按 variant 匹配)
         for g in guards_cfg.get("guards", []) or []:
             for r in self.rules:
                 if r["variant"] == g["variant"]:
                     r["block_prev"] |= set(g.get("block_prev", []))
+                    r["block_next"] |= set(g.get("block_next", []))
         # 2) 自动守卫:变体被某 canonical 包含时,包含处前字拦截(保护合法词,如「合板」⊂「咬合板」)
         for r in self.rules:
             v = r["variant"]
@@ -135,6 +165,9 @@ class RuleSet:
         prev = text[i - 1] if i > 0 else ""
         if prev in rule["block_prev"]:
             return False
+        nxt = text[i + len(rule["variant"]):i + len(rule["variant"]) + 1]
+        if nxt and nxt in rule["block_next"]:
+            return False
         if rule["class_rule"]:
             if prev in self.allow_prev:
                 return True
@@ -144,7 +177,9 @@ class RuleSet:
         return True
 
     def apply(self, text, counter=None, skip_counter=None):
-        """全规则替换,迭代至不动点(处理链式:和学→合学→再触发更长规则)。counter: {canonical: 次数}。"""
+        """全规则替换,迭代至不动点(处理链式:和学→合学→再触发更长规则);
+        出现循环(文本回到已见状态)立即停,防 A→B→A 乒乓。counter: {canonical: 次数}。"""
+        seen_states = {text}
         for _ in range(4):
             changed = 0
             for r in self.rules:
@@ -168,8 +203,9 @@ class RuleSet:
                         counter[r["canonical"]] += n
                 if skipped and skip_counter is not None:
                     skip_counter[v] += skipped
-            if not changed:
+            if not changed or text in seen_states:
                 break
+            seen_states.add(text)
         return text
 
     def actionable_count(self, text):
@@ -335,8 +371,9 @@ def llm_batches(items):
 
 
 def adjudicate(cands, logger):
-    """候选分批 LLM 裁决。返回裁决记录列表(含失败批次标记)。"""
-    results, failed = [], 0
+    """候选分批 LLM 裁决。返回裁决记录列表(含失败批次标记)。
+    告警聚合(2026-08-26 标准):逐批失败只记日志,本轮结束后聚合一条 notify。"""
+    results, failed_batches = [], []
     for bi, batch in enumerate(llm_batches(cands), 1):
         lines = []
         for k, c in enumerate(batch, 1):
@@ -377,23 +414,27 @@ def adjudicate(cands, logger):
                                 "category": str(it.get("category", "其他")), "reason": reason})
             logger.log(f"裁决批次 {bi}: {len(batch)} 条 (cache={cached})")
         except Exception as e:  # noqa: BLE001
-            failed += 1
-            common.notify("camp-tutor step1 裁决批次失败", f"批次{bi}: {e!r}"[:300])
+            failed_batches.append(bi)
             logger.log(f"WARN 裁决批次 {bi} 失败: {e!r}")
             for c in batch:
                 results.append({"a": c["a"], "b": c["b"], "kind": c["kind"],
                                 "decision": "未裁决", "reason": f"批次失败: {e!r}"[:200]})
-    if failed:
-        logger.log(f"WARN 共 {failed} 个裁决批次失败(已 notify,按未裁决继续)")
+    if failed_batches:
+        ids = "/".join(str(b) for b in failed_batches)
+        common.notify(f"step1 本轮裁决失败 {len(failed_batches)} 批:{ids}",
+                      f"批次 {ids} 按未裁决继续,明细见 logs/{logger.path.name}")
+        logger.log(f"WARN 共 {len(failed_batches)} 个裁决批次失败(已聚合 notify:{ids})")
     return results
 
 
 def extract_number_unit(texts, rules, logger):
-    """按 seed number_unit_rules 正则抽取「数字+单位」出现,带上下文。"""
+    """按 seed number_unit_rules 正则抽取「数字+单位」出现,带上下文。
+    正则中的数字组统一升级为支持小数,避免把「3.5 毫米」截成「5 毫米」。"""
     items = []
     for cid, text in texts.items():
         for ru in rules:
-            for m in re.finditer(ru["pattern"], text):
+            pat = ru["pattern"].replace(r"(\d+)", r"(\d+(?:\.\d+)?)")
+            for m in re.finditer(pat, text):
                 frag = m.group(0)
                 items.append({"course": cid, "unit": ru["unit"], "fragment": frag,
                               "ctx": text[max(0, m.start() - 30): m.end() + 30].replace("\n", " ")})
@@ -416,6 +457,7 @@ def review_number_unit(items, logger):
         idxs.sort(key=lambda i: (prio.get(items[i]["unit"], 9), i))
         review_idx.extend(idxs[:NU_REVIEW_CAP])
     reviewed = set(review_idx)
+    failed_batches = []
     logger.log(f"数字单位送审 {len(review_idx)}/{len(items)} 处(每课上限 {NU_REVIEW_CAP},mm/度 优先)")
     for bi, batch_idx in enumerate(llm_batches(review_idx), 1):
         lines = []
@@ -444,10 +486,14 @@ def review_number_unit(items, logger):
                     out[gi] = dict(out[gi], ok=True, reviewed=True)
             logger.log(f"数字单位审查批次 {bi}: {len(batch_idx)} 条 (cache={cached})")
         except Exception as e:  # noqa: BLE001
-            common.notify("camp-tutor step1 数字单位批次失败", f"批次{bi}: {e!r}"[:300])
+            failed_batches.append(bi)
             logger.log(f"WARN 数字单位批次 {bi} 失败: {e!r}")
             for gi in batch_idx:
                 out[gi] = dict(out[gi], ok=True, review_failed=True)
+    if failed_batches:
+        ids = "/".join(str(b) for b in failed_batches)
+        common.notify(f"step1 本轮数字单位审查失败 {len(failed_batches)} 批:{ids}",
+                      f"批次 {ids} 按 ok 继续,明细见 logs/{logger.path.name}")
     for gi in range(len(out)):
         if gi not in reviewed and not out[gi].get("reviewed"):
             out[gi] = dict(out[gi], ok=True, sampled_out=True)
@@ -455,7 +501,8 @@ def review_number_unit(items, logger):
 
 
 def apply_fragment_fix(t, fragment, corrected, ctx):
-    """片段级修正:用上下文定位唯一出现处替换,绝不全局替换纯数字。"""
+    """片段级修正:用上下文定位唯一出现处替换,绝不全局替换纯数字。
+    安全闸:命中处前一字符是数字或小数点(疑似小数被截断的抽取)时不替换。"""
     text = t.keywords + "\n" + "\n".join(b.text for b in t.blocks)
     hits = [m.start() for m in re.finditer(re.escape(fragment), text)]
     if not hits:
@@ -475,6 +522,8 @@ def apply_fragment_fix(t, fragment, corrected, ctx):
                 score += 1
         if score > best_score:
             best, best_score = h, score
+    if best > 0 and (text[best - 1].isdigit() or text[best - 1] == "."):
+        return False, "命中处前一字为数字/小数点,疑似截断抽取,跳过"
     # 在对应块内替换唯一一处
     pos = 0
     target = best
@@ -538,8 +587,9 @@ def cross_check(master, draft_texts, dict_terms, logger):
                     diffs.append({"pair": f"{ca}↔{cb}", "score": round(sc, 2),
                                   "a": ga, "b": gb, "py": py, "ctx_a": ctxa, "ctx_b": ctxb})
                     made += 1
-    logger.log(f"交叉校验写法差异候选: {len(diffs)} 条")
-    results = []
+    diffs = diffs[:120]  # 全局上限:课对按标题相似度降序,取最有代表性的差异送审
+    logger.log(f"交叉校验写法差异候选: {len(diffs)} 条(全局上限 120)")
+    results, failed_batches = [], []
     for bi, batch in enumerate(llm_batches(diffs), 1):
         lines = []
         for k, d in enumerate(batch, 1):
@@ -568,10 +618,14 @@ def cross_check(master, draft_texts, dict_terms, logger):
                     results.append(dict(d, decision="存疑", reason=rsn))
             logger.log(f"交叉校验批次 {bi}: {len(batch)} 条 (cache={cached})")
         except Exception as e:  # noqa: BLE001
-            common.notify("camp-tutor step1 交叉校验批次失败", f"批次{bi}: {e!r}"[:300])
+            failed_batches.append(bi)
             logger.log(f"WARN 交叉校验批次 {bi} 失败: {e!r}")
             for d in batch:
                 results.append(dict(d, decision="存疑", reason=f"批次失败: {e!r}"[:200]))
+    if failed_batches:
+        ids = "/".join(str(b) for b in failed_batches)
+        common.notify(f"step1 本轮交叉校验失败 {len(failed_batches)} 批:{ids}",
+                      f"批次 {ids} 按存疑继续,明细见 logs/{logger.path.name}")
     return pairs, results
 
 
@@ -632,6 +686,29 @@ def write_number_unit_md(path, items, applied, run_name):
     Path(path).write_text("\n".join(L), encoding="utf-8")
 
 
+def append_human_review_md(path, excl):
+    """在裁决记录文末追加「人工终审剔除记录」(幂等:先移除旧章节再追加)。"""
+    items = excl.get("exclude", []) or []
+    inc = excl.get("include", []) or []
+    if not items and not inc:
+        return
+    p = Path(path)
+    text = p.read_text(encoding="utf-8") if p.exists() else "# 拼音聚类候选·LLM 裁决记录\n"
+    text = text.split("\n## 人工终审剔除记录")[0].rstrip() + "\n"
+    L = [text, "## 人工终审剔除记录", "",
+         "以下 LLM 裁决条目经人工终审判定为方向错误/通用词/语法碎片,已从词典 v1 剔除:", "",
+         "| canonical | variant | 剔除理由 |", "|---|---|---|"]
+    for e in items:
+        L.append(f"| {e['canonical']} | {e['variant']} | {e['reason']} |")
+    if inc:
+        L += ["", "人工终审补入(原批次失败未裁决、但语料证据确凿的术语对):", "",
+              "| canonical | variants | 理由 |", "|---|---|---|"]
+        for e in inc:
+            L.append(f"| {e['canonical']} | {'、'.join(e.get('variants', []))} | {e.get('reason', e.get('note', ''))} |")
+    L.append("")
+    p.write_text("\n".join(L), encoding="utf-8")
+
+
 def write_cross_check_md(path, pairs, results, run_name):
     uni = [r for r in results if r["decision"] == "统一"]
     L = ["# 两营重合主题·术语写法交叉校验报告", "", f"- 运行: {run_name}",
@@ -664,7 +741,7 @@ def main():
     outdir.mkdir(parents=True, exist_ok=True)
     (outdir / "cleaned").mkdir(exist_ok=True)
 
-    master, seed, guards = load_inputs()
+    master, seed, guards, excl = load_inputs()
     ihash = input_hash()
     state_path = outdir / "state.json"
     state = common.read_json(state_path) if state_path.exists() else {}
@@ -716,12 +793,22 @@ def main():
             dict_terms.append(e)
 
     adj_raw = load_raw("adjudication_raw.json")
+    dict_yaml = outdir / "dict_v1.yaml"
+    dict_from_yaml = False
     if adj_raw is not None:
         all_cands, all_results = adj_raw.get("candidates", []), adj_raw["results"]
         for r in all_results:
             if r["decision"] in ("采纳纠错", "同义保留"):
                 merge_result(r)
         logger.log(f"拼音裁决: 复用缓存(候选 {len(all_cands)} 条,裁决 {len(all_results)} 条)")
+        write_candidates_csv(outdir / "pinyin_candidates.csv", all_cands)
+        write_adjudication_md(outdir / "adjudication.md", all_results, run.name)
+    elif dict_yaml.exists():
+        # 裁决缓存缺失但词典已产出:直接复用词典,跳过重挖掘/重裁决(人工终审路径)
+        dict_terms = yaml.safe_load(dict_yaml.read_text(encoding="utf-8"))["terms"]
+        canon_seen = {t["canonical"] for t in dict_terms}
+        dict_from_yaml = True
+        logger.log(f"词典: 复用 dict_v1.yaml({len(dict_terms)} 条),跳过候选挖掘与裁决")
     else:
         all_cands, all_results = [], []
         known_pairs = set()
@@ -751,22 +838,35 @@ def main():
             logger.log(f"WARN 词典 {len(dict_terms)} 条 < {MIN_DICT}(已 notify)")
         common.write_json(outdir / "adjudication_raw.json",
                           {"candidates": all_cands, "results": all_results})
-    write_candidates_csv(outdir / "pinyin_candidates.csv", all_cands)
-    write_adjudication_md(outdir / "adjudication.md", all_results, run.name)
+        write_candidates_csv(outdir / "pinyin_candidates.csv", all_cands)
+        write_adjudication_md(outdir / "adjudication.md", all_results, run.name)
 
-    # 阶段5:两营交叉校验
+    # 阶段5:两营交叉校验(词典来自 dict_v1.yaml 复用时,其结果已并入词典,跳过)
     xc_raw = load_raw("cross_check_raw.json")
-    if xc_raw is None:
+    if dict_from_yaml:
+        logger.log("交叉校验: 词典复用模式,跳过(保留既有报告)")
+    elif xc_raw is None:
         xc_pairs, xc_results = cross_check(master, draft_texts, dict_terms, logger)
         xc_raw = {"pairs": xc_pairs, "results": xc_results}
         common.write_json(outdir / "cross_check_raw.json", xc_raw)
+        for r in xc_results:
+            if r["decision"] == "统一":
+                merge_result(r)
+        write_cross_check_md(outdir / "cross_check.md", xc_pairs, xc_results, run.name)
     else:
         xc_pairs, xc_results = [tuple(p) for p in xc_raw["pairs"]], xc_raw["results"]
         logger.log("交叉校验: 复用缓存")
-    for r in xc_results:
-        if r["decision"] == "统一":
-            merge_result(r)
-    write_cross_check_md(outdir / "cross_check.md", xc_pairs, xc_results, run.name)
+        for r in xc_results:
+            if r["decision"] == "统一":
+                merge_result(r)
+        write_cross_check_md(outdir / "cross_check.md", xc_pairs, xc_results, run.name)
+
+    # 人工终审:剔除有害条目 + 补入(config/step1_exclude.yaml)
+    dict_terms = apply_human_review(dict_terms, excl, logger)
+    append_human_review_md(outdir / "adjudication.md", excl)
+    if len(dict_terms) < MIN_DICT:
+        common.notify("camp-tutor step1 终审后词典不足", f"{len(dict_terms)} 条 < {MIN_DICT}")
+        logger.log(f"WARN 终审后词典 {len(dict_terms)} 条 < {MIN_DICT}(已 notify)")
 
     # 词典 v1 落盘
     dict_doc = {"version": f"v1-{run.name}",
@@ -859,7 +959,7 @@ def main():
     logger.summary(phase="finalize", cleaned=len(prefix_texts), self_check=not self_bad,
                    format_ok=not fmt_bad, nu_fixed=n_fixed)
     logger.close(ok=not self_bad and not fmt_bad, outputs=str(outdir),
-                 dict_terms=len(dict_terms), elapsed_s=round(time.time() - t0, 1))
+                 dict_terms=len(dict_terms))
 
 
 if __name__ == "__main__":

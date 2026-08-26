@@ -284,21 +284,30 @@ def main():
     logger.log(f"课节 {len(courses)} 节(病例精讲 {sum(1 for c in courses if c['case_series'])} 节优先)")
 
     frames_by_cid, metas = {}, {}
+    no_video, failed_courses = [], []
     for c in courses:
         cid = c["canonical_id"]
         if not c.get("video_path") or not Path(c["video_path"]).exists():
-            logger.log(f"{cid} 无视频文件,跳过并 notify")
-            common.notify("camp-tutor step3 缺视频", f"{cid} {c['title']}:video_path 不存在")
+            logger.log(f"{cid} 无视频文件,跳过")
+            no_video.append(cid)
             continue
         try:
             frames = process_course(c, outdir, logger)
-        except Exception as e:  # noqa: BLE001 - 单课失败 notify 并继续
+        except Exception as e:  # noqa: BLE001 - 单课失败记录并继续,循环结束后聚合 notify
             logger.log(f"{cid} 抽帧失败: {e!r}")
-            common.notify("camp-tutor step3 抽帧失败", f"{cid} {c['title']}: {e!r}"[:300])
+            failed_courses.append(f"{cid}: {e!r}"[:120])
             continue
         if frames is not None:
             frames_by_cid[cid] = frames
             metas[cid] = common.read_json(outdir / "frames" / cid / "frames_meta.json")
+
+    # 循环失败告警聚合(2026-08-26 标准):一轮一条,不逐课轰炸
+    if no_video:
+        common.notify(f"step3 本轮 {len(no_video)} 课缺视频:{'/'.join(no_video)}",
+                      "缺视频课节跳过抽帧,明细见日志")
+    if failed_courses:
+        common.notify(f"step3 本轮抽帧失败 {len(failed_courses)} 课",
+                      " | ".join(failed_courses)[:300])
 
     # 全量帧索引(每次重建,幂等)
     with open(outdir / "frames_index.jsonl", "w", encoding="utf-8") as f:

@@ -19,6 +19,8 @@
 
 - `config/courses.yaml`:44 节名单(canonical_id/camp/dir_name/title/instructor/case_series)+ 营期窗口
 - `config/seed_terms.yaml` / `config/framework.yaml`
+- `config/step1_guards.yaml`:部件1 替换守卫(block_prev/block_next 保护合法词、「X类」序数语境规则)
+- `config/step1_exclude.yaml`:部件1 人工终审(exclude 剔除有害裁决对 / include 补入未裁决术语对)
 - `data/latest/step0/courses_master.json`:canonical 主表(含 transcript_path/video_path/instructor 等)
 
 ## 转写稿格式

@@ -1,0 +1,26 @@
+# camp-tutor 仓库规则(训练营 AI 助教·内容管道)
+
+## 定位
+
+学科无关的离线内容加工管道。本仓库只产 `corpus/` 管道与 `config/` 数据;审核台/H5 在后续指令单。
+
+## 铁律
+
+- **学科无关**:课程名单/术语/框架名/营期窗口等学科数据一律进 `config/`,代码零硬编码
+- **只读数据源**:`~/NAS-数据仓/转写语料/`、`~/NAS-视频/`、富兰克林副本库(只读查询,禁任何写);产出全写本仓库 `data/`
+- `.env`(600)不进 git;`data/`、`logs/` 不进 git
+- LLM 调用一律经 `corpus/lib/llm.py`(URL/MODEL/KEY 走环境变量;内容寻址缓存,重跑零成本);禁止裸写 HTTP 调用
+- 每部件:幂等 + 版本化(`data/runs/<ts>/`)+ 日志(`logs/`,输入输出摘要+耗时)+ token 台账(`common.record_tokens`)
+- **任何部件失败路径必须 `common.notify(...)`(try 包裹、不阻塞主流程、落 logs/notify.log)**,顶层 `__main__` 已有兜底,部件内部可恢复失败也要 notify
+- 运行目录:步骤内用 `common.get_run_dir()`;`run_all.sh` 负责创建新 run 并导出 `CAMP_TUTOR_RUN_DIR`
+- Python 解释器:`.venv/bin/python`(pyyaml/pypinyin/pillow 已装)
+
+## 输入契约
+
+- `config/courses.yaml`:44 节名单(canonical_id/camp/dir_name/title/instructor/case_series)+ 营期窗口
+- `config/seed_terms.yaml` / `config/framework.yaml`
+- `data/latest/step0/courses_master.json`:canonical 主表(含 transcript_path/video_path/instructor 等)
+
+## 转写稿格式
+
+见 `corpus/lib/transcript.py`:`parse()` → Transcript(header, keywords, blocks[Speaker/start_sec/text]);清洗稿必须保持同格式(`serialize()`)。

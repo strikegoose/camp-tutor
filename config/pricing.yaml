@@ -1,0 +1,8 @@
+# 各模型单价配置(折算人民币,元/百万 tokens;供 cost_report.py 折算金额)
+# 依据:hq 规划 v2「DeepSeek V4 Flash 输入 ¥1/M、输出 ¥2/M」;
+# vision-exp 与 embedding 无官方报价来源,按同档估,报告内需标注「(估)」
+version: pricing-2026-08-26
+prices:
+  deepseek-v4-flash: {input: 1.0, output: 2.0, source: 规划v2}
+  deepseek-v4-flash-vision-exp: {input: 1.0, output: 2.0, source: 估}
+  text-embedding-v4: {input: 0.5, output: 0.0, source: 估, note: 百炼 90 天免费额度内实际为 0}

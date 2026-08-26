@@ -29,10 +29,15 @@ if [ "$DRY_RUN" = "1" ]; then
   exit 0
 fi
 
-# 新建版本化运行目录
-RUN_DIR=$($PY -c "import sys; sys.path.insert(0,'corpus'); from lib import common; print(common.new_run_dir())")
+# 新建版本化运行目录。不变式(AIHQ 2026-08-27 核定):data/latest 只在 selftest 全绿后推进,
+# 未全绿回滚原指向——发布态永远是已验证状态
+RUN_TS=$(date '+%Y%m%d-%H%M%S')
+RUN_DIR="$(pwd)/data/runs/$RUN_TS"
+mkdir -p "$RUN_DIR"
 export CAMP_TUTOR_RUN_DIR="$RUN_DIR"
-echo "=== 运行目录: $RUN_DIR"
+PREV_LATEST=""
+if [ -L data/latest ]; then PREV_LATEST=$(readlink data/latest); fi
+echo "=== 运行目录: $RUN_DIR(原 latest: ${PREV_LATEST:-无})"
 
 i=0
 for s in "${STEPS[@]}"; do
@@ -49,4 +54,15 @@ done
 
 echo "--- 成本汇总"
 $PY corpus/cost_report.py
-echo "=== run_all 完成: $RUN_DIR"
+
+echo "--- 推进 latest 并跑 selftest 验证"
+rm -f data/latest
+ln -s "runs/$RUN_TS" data/latest
+if bash corpus/selftest.sh; then
+  echo "=== run_all 完成: $RUN_DIR(selftest 全绿,latest 已推进)"
+else
+  echo "!!! selftest 未全绿,latest 回滚至 ${PREV_LATEST:-空}" >&2
+  rm -f data/latest
+  if [ -n "$PREV_LATEST" ]; then ln -s "$PREV_LATEST" data/latest; fi
+  exit 1
+fi

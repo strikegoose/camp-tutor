@@ -26,3 +26,11 @@
 ## 转写稿格式
 
 见 `corpus/lib/transcript.py`:`parse()` → Transcript(header, keywords, blocks[Speaker/start_sec/text]);清洗稿必须保持同格式(`serialize()`)。
+
+## T2 公共组件(20260826-03 语料库平台化)
+
+逐字稿解析(`corpus/lib/transcript.py`)、术语替换引擎(step1 的 RuleSet)、标题匹配(step0 的
+normalize/similarity/assign_1to1)已由 20260826-03 会话抽取至 corpus-hub
+(`~/Claude/projects/corpus-hub/`,可用环境变量 CORPUS_HUB 覆盖)作为公司级公共组件。
+本仓库对应文件**目前仍为全量实现**(非 shim);shim 化由 -03 后续落地,落地时须重跑
+`bash corpus/selftest.sh` 验证行为一致(当前基线 44/44)。

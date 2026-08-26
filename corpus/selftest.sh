@@ -226,7 +226,7 @@ check("step5 讲义含视频时间点索引", not no_ts, str(no_ts[:3]))
 
 # --- 全局 ---
 check("cost-report.json 落盘", (ROOT / "data" / "cost-report.json").stat().st_size > 100)
-for step in ["step0_reconcile", "step1_terms", "step2_cards", "step3_frames", "step4_vector", "step5_quiz"]:
+for step in ["step0_reconcile", "step1_terms", "step1b_hepingmian", "step2_cards", "step3_frames", "step4_vector", "step5_quiz"]:
     p = ROOT / "corpus" / f"{step}.py"
     check(f"notify 失败分支: {step}", p.exists() and "common.notify" in p.read_text())
 

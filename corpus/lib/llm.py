@@ -79,13 +79,15 @@ def _cached_call(part, model, payload, max_tokens):
         resp = json.loads(cache_file.read_text(encoding="utf-8"))
         text = _extract_text(resp)
         usage = resp.get("usage", {})
-        if text:
+        truncated = resp.get("stop_reason") == "max_tokens"
+        if text and not truncated:
             common.record_tokens(part, model, usage.get("input_tokens", 0),
                                  usage.get("output_tokens", 0), cached=True)
             _log_call(part, model, resp, True, len(text))
             return text, True
-        # 空 text 缓存条目(thinking-only 异常)不复用:删条目改走实时调用,自愈缓存中毒
-        _log_call(part, model, resp, True, 0, note="cached_empty_discarded")
+        # 空 text 或 max_tokens 截断缓存条目不复用:删条目改走实时调用,自愈缓存中毒
+        _log_call(part, model, resp, True, len(text),
+                  note="cached_empty_discarded" if not text else "cached_truncated_discarded")
         cache_file.unlink()
     payload = dict(payload, model=model)
     resp, text = None, ""
@@ -96,15 +98,17 @@ def _cached_call(part, model, payload, max_tokens):
         common.record_tokens(part, model, usage.get("input_tokens", 0),
                              usage.get("output_tokens", 0), cached=False)
         text = _extract_text(resp)
+        truncated = resp.get("stop_reason") == "max_tokens"
         _log_call(part, model, resp, False, len(text),
-                  note="" if text else f"empty_response attempt {attempt + 1} max_tokens={mt}")
-        if text:
+                  note="" if (text and not truncated)
+                  else f"{'truncated' if text else 'empty_response'} attempt {attempt + 1} max_tokens={mt}")
+        if text and not truncated:
             break
-        # 空 text 重试时抬高 output 预算:实证 thinking 型模型会烧光 max_tokens 只回 thinking 块
+        # 空 text/截断重试时抬高 output 预算:实证 thinking 型模型会烧光 max_tokens 只回 thinking 块
         mt = min(mt * 2, 65536)
         if attempt < EMPTY_RETRIES:
             time.sleep(min(5 * (attempt + 1), 15))
-    if text:
+    if text and resp.get("stop_reason") != "max_tokens":
         cache_file.write_text(json.dumps(resp, ensure_ascii=False), encoding="utf-8")
     return text, False
 

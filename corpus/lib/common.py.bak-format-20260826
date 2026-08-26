@@ -101,10 +101,8 @@ def record_tokens(part, model, in_toks, out_toks, cached=False):
 
 
 def notify(subject, message):
-    """失败路径通知企微:try 包裹,任何异常都不阻塞主流程,落本地日志。
-    标题按 HQ 报警格式标准(2026-08-26 拍板):【级别】项目中文名·单号｜一句人话;开发期失败默认知悉。"""
+    """失败路径通知企微:try 包裹,任何异常都不阻塞主流程,落本地日志。"""
     script = os.path.expanduser("~/Claude/scripts/notify-wecom.sh")
-    subject = f"【知悉】训练营AI助教·20260826-01｜{subject}"
     LOGS.mkdir(exist_ok=True)
     try:
         r = subprocess.run([script, subject, message], capture_output=True, text=True, timeout=30)

@@ -2,6 +2,7 @@
 # block_prev: 变体前一字命中时不替换(该处视为合法词,自检同口径统计)
 version: step1-guards-v2-2026-08-26
 guards:
+  - {variant: 畸功能训练, block_prev: [正], note: 保护「正畸功能训练」不被「畸功能训练→肌功能训练」子串误伤(与 正肌→正畸 形成乒乓)}
   - {variant: 合学, block_prev: [简], note: v2:保护「至简合学」品牌名(唯一保留「合」的词,创始人点名)}
   - {variant: 合平面, block_prev: [咬, 颌], note: 保护「咬合平面」同义词条/「颌合平面」存疑写法}
   - {variant: 和学, block_prev: [究], note: 保护「研究和学习」等合法搭配}

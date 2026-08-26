@@ -96,4 +96,10 @@ exclude:
   - {canonical: 颌骨的, variant: 合骨的, reason: "v2 碎片词条治理(非独立术语)"}
   - {canonical: 颌骨错位的, variant: 合骨错位的, reason: "v2 碎片词条治理(非独立术语)"}
   - {canonical: 颌骨错位的方, variant: 合骨错位的方, reason: "v2 碎片词条治理(非独立术语)"}
-include: []
+include:
+  - {canonical: 中尖对尖, variants: [中间对间], category: 临床, source: pinyin裁决, note: 尖对尖家族独立术语(100936 已验证)}
+  - {canonical: 远中尖对尖, variants: [远中间对间], category: 诊断, source: pinyin裁决, note: 尖对尖家族独立术语(100936 已验证)}
+  - {canonical: 曲面断层片, variants: [], category: 影像, source: 人工, note: 知识资产条目(语料高频)}
+  - {canonical: 口内照, variants: [], category: 影像, source: 人工, note: 知识资产条目(语料高频)}
+  - {canonical: 头颅侧位片, variants: [], category: 影像, source: 人工, note: 知识资产条目}
+

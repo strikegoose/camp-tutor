@@ -197,7 +197,7 @@ def main():
             by_course.setdefault(c["course_id"], []).append(c)
         exp_courses = sorted(by_course, key=lambda k: -len(by_course[k]))[:2]
     for cid in exp_courses:
-        queries = [c for c in by_course[cid] if c.get("quote")][:30]
+        queries = [c for c in by_course[cid] if c.get("quote") and c.get("content")][:30]
         experiment[cid] = {"queries": len(queries)}
         for strategy in ("fixed", "semantic"):
             chunks = [c for c in all_chunks[strategy] if c["course_id"] == cid]
@@ -208,7 +208,7 @@ def main():
             bm = BM25([c["text"] for c in chunks])
             hits_vec = hits_bm = hits_hybrid = 0
             for card in queries:
-                qv = embed_batch([card["quote"]])[0]
+                qv = embed_batch([card["content"]])[0]
                 qv = np.array(qv)
                 qv = qv / (np.linalg.norm(qv) + 1e-9)
                 sims = (M @ qv).tolist()
@@ -217,9 +217,9 @@ def main():
                     continue
                 t0 = truth[0]
                 v_rank = topk(sims, 5)
-                b_rank = topk(bm.score(card["quote"]), 5)
+                b_rank = topk(bm.score(card["content"]), 5)
                 # hybrid:向量+BM25 分数各自归一后相加
-                bs = bm.score(card["quote"])
+                bs = bm.score(card["content"])
                 def norm(x):
                     mx = max(x) or 1.0
                     return [v / mx for v in x]
@@ -264,7 +264,7 @@ def main():
     # 5) 实验报告
     rep = ["# recall@k 切分策略实验报告", "", f"- 运行: {run.name}",
            f"- 实验课: {', '.join(experiment) if experiment else '无(cards 未就绪)'}",
-           "- query: 各课知识卡片原文 quote(≤30 条/课);正解=包含该 quote 的 chunk",
+           "- query: 各课知识卡片 content(断言改写,语义查询,≤30 条/课);正解=包含该卡 quote 原文的 chunk",
            "- 指标: recall@5(vector / BM25 / hybrid)", ""]
     if experiment:
         rep += ["| 课程 | 策略 | chunk 数 | vec | bm25 | hybrid |", "|---|---|---|---|---|---|"]
@@ -275,6 +275,7 @@ def main():
                            f"| {e['recall@5_bm25']} | {e['recall@5_hybrid']} |")
     rep += ["", f"## 结论", "",
             f"选定切分策略:**{chosen}**(fixed=500字/重叠100;semantic=Speaker 边界聚合 300~700 字)。",
+            "两策略召回持平时取 fixed 的平局裁决依据:窗口时间戳粒度更细且均匀,分钟级引文定位更稳;",
             "检索采用 hybrid(向量余弦 + BM25 归一化加和),依据为上表 hybrid 列召回。",
             "embedding: DashScope text-embedding-v4(环境变量配置);BM25: 字符 bigram。"]
     (outdir / "recall_report.md").write_text("\n".join(rep), encoding="utf-8")

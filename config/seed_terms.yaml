@@ -69,7 +69,7 @@ terms:
   - {canonical: 替牙期, variants: [], category: 临床}
   - {canonical: 深覆盖, variants: [], category: 诊断}
   - {canonical: 功能性矫治器, variants: [功能矫治器], category: 工具, note: 同义非纠错}
-  - {canonical: 肌功能训练, variants: [肌肉训练], category: 工具, note: 同义非纠错}
+  - {canonical: 肌功能训练, variants: [肌肉训练, 畸功能训练], category: 工具, note: 同义非纠错;畸功能训练=ASR 同音误转(肌→畸),2026-08-27 创始人人工裁决硬替换}
   - {canonical: 生长发育, variants: [生长发与], category: 临床}
   - {canonical: 鉴别诊断, variants: [], category: 诊断}
   - {canonical: 尖对尖, variants: [间对间, 肩对肩], category: 临床, note: 磨牙尖窝关系}

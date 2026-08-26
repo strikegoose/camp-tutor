@@ -296,7 +296,7 @@ def mine_candidates(stats, texts, dict_terms, known_pairs, ngram_min_freq, clust
         py_of[g] = pinyin_key(g)
     cands = []
     # 锚定:与词典 canonical 同拼音但字形不同
-    for g, (cnt, cids) in grams.items():
+    for g, (cnt, cids) in sorted(grams.items()):
         if g in canonicals or g in known_variants:
             continue
         pg = py_of[g]
@@ -311,11 +311,11 @@ def mine_candidates(stats, texts, dict_terms, known_pairs, ngram_min_freq, clust
                 break
     # 聚类:高频 n-gram 按拼音分组,组内近音异形对
     groups = defaultdict(list)
-    for g, (cnt, cids) in grams.items():
+    for g, (cnt, cids) in sorted(grams.items()):
         if cnt >= cluster_min_freq:
             groups[py_of[g]].append((g, cnt, len(cids)))
     cluster_pairs = []
-    for py, items in groups.items():
+    for py, items in sorted(groups.items()):
         if len(items) < 2:
             continue
         items.sort(key=lambda x: -x[1])
@@ -567,15 +567,15 @@ def cross_check(master, draft_texts, dict_terms, logger):
         texts = {ca: draft_texts[ca], cb: draft_texts[cb]}
         stats = ngram_stats(texts)
         groups = defaultdict(set)
-        for g, (cnt, cids) in stats.items():
+        for g, (cnt, cids) in sorted(stats.items()):
             if cnt >= 2:
                 groups[pinyin_key(g)].add(g)
         made = 0
-        for py, forms in groups.items():
+        for py, forms in sorted(groups.items()):
             if len(forms) < 2 or made >= 12:
                 continue
-            in_a = [g for g in forms if g in texts[ca]]
-            in_b = [g for g in forms if g in texts[cb] and g not in texts[ca]]
+            in_a = [g for g in sorted(forms) if g in texts[ca]]
+            in_b = [g for g in sorted(forms) if g in texts[cb] and g not in texts[ca]]
             for ga in in_a:
                 for gb in in_b:
                     if made >= 12:

@@ -4,6 +4,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 PY=.venv/bin/python
+# 确定性:固定 hash 种子,防 set/dict 迭代序在进程间漂移(2026-08-26 幂等返工)
+export PYTHONHASHSEED=0
 
 DRY_RUN=0
 FROM_STEP=0

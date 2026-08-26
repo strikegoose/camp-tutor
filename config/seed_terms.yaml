@@ -38,7 +38,7 @@ terms:
   - {canonical: 张磊, variants: [], category: 讲师}
   - {canonical: 杨宇, variants: [], category: 讲师}
   - {canonical: 陈婷, variants: [], category: 讲师}
-  - {canonical: 肖凌, variants: [], category: 讲师}
+  - {canonical: 肖凌, variants: [肖林], category: 讲师}
   - {canonical: 张茜, variants: [张倩], category: 讲师}
   - {canonical: 雷小芳, variants: [], category: 讲师}
   - {canonical: 刘晓艳, variants: [], category: 讲师}

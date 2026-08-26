@@ -143,6 +143,50 @@ def main():
         nas_rows[c["canonical_id"]] = row
     logger.log(f"NAS 扫描完成: {len(nas_rows)} 节")
 
+    # 2b) 讲师回填:名单缺讲师时从逐字稿开场白提取(通用模式,学科无关),
+    #     提取结果经种子词典 variants→canonical 归一(如 ASR 错字名)
+    seed_file = common.CONFIG / "seed_terms.yaml"
+    name_map = {}
+    if seed_file.exists():
+        seed = yaml.safe_load(seed_file.read_text(encoding="utf-8"))
+        for t in seed.get("terms", []):
+            if t.get("category") == "讲师":
+                for v in (t.get("variants") or []):
+                    name_map[v] = t["canonical"]
+                name_map.setdefault(t["canonical"], t["canonical"])
+    spk_re = re.compile(r"^Speaker\s+\d+\s+\d{2}:\d{2}:\d{2}\.\d{3}\s*$")
+    intro_patterns = [
+        re.compile(r"我是([\u4e00-\u9fff]{2,3})医生"),
+        re.compile(r"我是[^,，。]{0,12}?的([\u4e00-\u9fff]{2,3})医生"),
+        re.compile(r"创始人([\u4e00-\u9fff]{2,3})"),
+        re.compile(r"我是([\u4e00-\u9fff]{2,3})[,，]"),
+    ]
+    name_stop = {"大家", "各位", "老师", "孩子", "正畸", "一个", "一名"}
+    filled = 0
+    for cid, row in nas_rows.items():
+        if row["instructor"] or not row["transcript_path"]:
+            continue
+        try:
+            head = Path(row["transcript_path"]).read_text(encoding="utf-8")[:4000]
+        except Exception:
+            continue
+        intro = "。".join(l.strip() for l in head.splitlines()
+                          if l.strip() and not spk_re.match(l.strip())
+                          and not l.startswith(("Keywords:", "20")))[:1200]
+        for pat in intro_patterns:
+            m = pat.search(intro)
+            if m:
+                name = m.group(1)
+                # 宁缺毋滥:只接受种子词典讲师表内的名字(防「儿牙医生」类误提)
+                if name in name_map and name not in name_stop \
+                        and not (m.start() > 0 and intro[m.start() - 1] in "个名位"):
+                    row["instructor"] = name_map[name]
+                    row["instructor_source"] = "transcript_intro"
+                    filled += 1
+                    break
+    if filled:
+        logger.log(f"讲师回填: {filled} 节(逐字稿开场白提取)")
+
     # 3) 小鹅通候选(按营期窗口过滤)+ 全局 1:1 匹配
     lesson_goods = [g for g in snap["courses"] if g.get("resource_type") in (3, 4, 50)]
     camp_goods = [g for g in snap["courses"] if "49天" in (g.get("goods_name") or "")

@@ -116,6 +116,32 @@ def notify(subject, message):
     return status
 
 
+NOTIFY_STATE = DATA / "last_notify.json"
+
+
+def notify_dedup(key, subject, message):
+    """同 key 内容(标题+正文 JSON 序列化)与上次推送一致则跳过,变化才推(AIHQ 2026-08-27 走查①)。
+    状态存 data/last_notify.json;告警语义不变,FAIL 仍推,同内容不重复推。"""
+    state = {}
+    if NOTIFY_STATE.exists():
+        try:
+            state = json.loads(NOTIFY_STATE.read_text(encoding="utf-8"))
+        except Exception:  # noqa: BLE001 - 状态文件损坏不阻塞告警
+            state = {}
+    sig = sha256_text(json.dumps({"s": subject, "m": message}, ensure_ascii=False, sort_keys=True))
+    if state.get(key) == sig:
+        with open(LOGS / "notify.log", "a", encoding="utf-8") as f:
+            f.write(f"{datetime.datetime.now():%F %T} | {subject} | {message} | dedup-skip(同 content 已推过)\n")
+        return "dedup-skip"
+    status = notify(subject, message)
+    state[key] = sig
+    try:
+        NOTIFY_STATE.write_text(json.dumps(state, ensure_ascii=False, indent=1), encoding="utf-8")
+    except Exception:  # noqa: BLE001 - 状态写失败不阻塞主流程
+        pass
+    return status
+
+
 def sha256_text(s):
     return hashlib.sha256(s.encode("utf-8")).hexdigest()
 

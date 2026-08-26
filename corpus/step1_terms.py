@@ -834,7 +834,9 @@ def main():
         per_course[cid]["number_unit_fixes"] = sum(
             1 for it in nu_items if it["course"] == cid and applied.get(id(it), (False,))[0])
     if self_bad:
-        common.notify("camp-tutor step1 自检未过", json.dumps(self_bad, ensure_ascii=False)[:300])
+        # 同 self_bad 内容去重(AIHQ 2026-08-27 走查①):内容一致跳过,变了才推
+        common.notify_dedup("step1_self_check", "camp-tutor step1 自检未过",
+                            json.dumps(self_bad, ensure_ascii=False, sort_keys=True)[:300])
     stats = {
         "run": run.name, "courses": len(prefix_texts),
         "dict_terms": len(dict_terms),

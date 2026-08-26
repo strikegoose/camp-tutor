@@ -104,8 +104,21 @@ _purged = {"个颌骨","个颌骨错","个颌骨错位","中尖对","他的颌",
            "向的颌骨错位","对尖","尖对","是颌骨","有颌骨","有颌骨错","有颌骨错位","的前段","的颌骨",
            "的颌骨错","的颌骨错位","这个颌骨","颌骨发","颌骨发育异","颌骨的","颌骨错位的","颌骨错位的方","有颌"}
 check("v2 碎片词条已剔出词典", not (_purged & set(canon_list)), str(_purged & set(canon_list)))
-jp = sum(p.read_text(encoding="utf-8").count("颌位置") for p in cleaned)
-check("v2 清洗稿无「颌位置」污染(=0)", jp == 0, f"{jp} 处")
+def _count_jwp():
+    n = 0
+    for p in cleaned:
+        t = p.read_text(encoding="utf-8")
+        i = 0
+        while True:
+            i = t.find("颌位置", i)
+            if i < 0:
+                break
+            if not (i > 0 and t[i - 1] in "上下"):  # 上/下颌位置为合法词
+                n += 1
+            i += 1
+    return n
+jp = _count_jwp()
+check("v2 清洗稿无「颌位置」污染(=0,上/下颌位置除外)", jp == 0, f"{jp} 处")
 def _ortho_residual(word, allow_prev=()):
     n = 0
     for p in cleaned:

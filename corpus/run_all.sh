@@ -16,7 +16,7 @@ for arg in "$@"; do
   esac
 done
 
-STEPS=(step0_reconcile step1_terms step2_cards step3_frames step4_vector step5_quiz)
+STEPS=(step0_reconcile step1_terms step1b_hepingmian step2_cards step3_frames step4_vector step5_quiz)
 
 if [ "$DRY_RUN" = "1" ]; then
   echo "[dry-run] 将创建新运行目录 data/runs/<ts>/ 并按序执行:"

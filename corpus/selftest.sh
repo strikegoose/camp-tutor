@@ -95,6 +95,49 @@ check("step1 替换完成率 100%(守卫口径)", not leftover,
 for f in ("pinyin_candidates.csv", "adjudication.md", "number_unit_report.md", "cross_check.md"):
     check(f"step1 {f} 落盘", (s1 / f).stat().st_size > 100)
 
+# --- step1 补充指令A(术语口径 v2)检查项 ---
+canon_list = [t.get("canonical") for t in terms]
+check("v2 知识条目入词典", all(k in canon_list for k in ("颌位性错𬌗畸形", "颌位正畸", "颌位重建", "正雅GS")))
+check("v2 废除 颌平面/牙合畸形 canonical", "颌平面" not in canon_list and "牙合畸形" not in canon_list)
+check("v2 「颌学」不作任何词条变体", all("颌学" not in (t.get("variants") or []) for t in terms))
+_purged = {"个颌骨","个颌骨错","个颌骨错位","中尖对","他的颌","他的颌骨","向的颌","向的颌骨","向的颌骨错",
+           "向的颌骨错位","对尖","尖对","是颌骨","有颌骨","有颌骨错","有颌骨错位","的前段","的颌骨",
+           "的颌骨错","的颌骨错位","这个颌骨","颌骨发","颌骨发育异","颌骨的","颌骨错位的","颌骨错位的方","有颌"}
+check("v2 碎片词条已剔出词典", not (_purged & set(canon_list)), str(_purged & set(canon_list)))
+jp = sum(p.read_text(encoding="utf-8").count("颌位置") for p in cleaned)
+check("v2 清洗稿无「颌位置」污染(=0)", jp == 0, f"{jp} 处")
+def _ortho_residual(word, allow_prev=()):
+    n = 0
+    for p in cleaned:
+        t = p.read_text(encoding="utf-8")
+        i = 0
+        while True:
+            i = t.find(word, i)
+            if i < 0:
+                break
+            if not (i > 0 and t[i - 1] in allow_prev):
+                n += 1
+            i += 1
+    return n
+_ortho = {"合学": ("简",), "合平面": ("咬",), "合位": (), "深覆合": (), "覆合": (), "反合": (),
+          "开合": (), "锁合": (), "错合畸形": (), "建合": (), "对合": (), "牙合": ()}
+_res = {w: _ortho_residual(w, ap) for w, ap in _ortho.items()}
+_res = {w: n for w, n in _res.items() if n}
+check("v2 正字化全量(除至简合学/咬合平面)", not _res, str(_res) if _res else "0 残留")
+_raw_hev = sum(Path(r["transcript_path"]).read_text(encoding="utf-8").count("颌学")
+               for r in master if r["transcript_path"])
+_cl_hev = sum(p.read_text(encoding="utf-8").count("颌学") for p in cleaned)
+check("v2 「颌学」不被替换(原稿=清洗稿计数)", _raw_hev == _cl_hev, f"raw={_raw_hev} cleaned={_cl_hev}")
+_disp = RUN / "step1b" / "disposition.json"
+_hp_md = RUN / "step1b" / "hepingmian_disposition.md"
+if _disp.exists():
+    _d = json.loads(_disp.read_text())
+    _remain = sum(p.read_text(encoding="utf-8").count("和平面") for p in cleaned)
+    check("v2 和平面逐处处置落盘且计数一致", _hp_md.exists() and _remain == _d["kept"],
+          f"总 {_d['total']} 保留 {_d['kept']} 替换 {_d['fixed']} 稿内余 {_remain}")
+else:
+    check("v2 和平面逐处处置落盘且计数一致", False, "disposition.json 缺失")
+
 # --- step2 知识卡片 ---
 s2 = RUN / "step2"
 cards = [json.loads(l) for l in (s2 / "cards.jsonl").read_text().splitlines() if l.strip()]

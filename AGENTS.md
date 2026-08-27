@@ -30,10 +30,9 @@
 ## T2 公共组件(20260826-03 语料库平台化)
 
 逐字稿解析(`corpus/lib/transcript.py`)、术语替换引擎(step1 的 RuleSet)、标题匹配(step0 的
-normalize/similarity/assign_1to1)已由 20260826-03 会话抽取至 corpus-hub
-(`~/Claude/projects/corpus-hub/`,可用环境变量 CORPUS_HUB 覆盖)作为公司级公共组件。
-本仓库对应文件**为全量实现**(非 shim),无 corpus-hub 依赖。
-插曲留痕(2026-08-27,验收轮 2 实证):shim 版本曾于 04:2x 被 `git add -A` 误扫进提交
-`88392cf`(该提交信息误标为 llm.py 修复;llm.py 截断修复实在 `80acef2`),当日已从
-`80acef2` 还原三文件为全量实现并复跑 selftest 44/44。shim 化如未来由 -03 落地,
-须重跑 `bash corpus/selftest.sh` 验证行为一致(基线 44/44)。
+normalize/similarity/assign_1to1)已抽取至 corpus-hub(`~/Claude/projects/corpus-hub/`,
+可用环境变量 CORPUS_HUB 覆盖)作为公司级公共组件;本仓库对应文件为调用 shim/导入,行为不变。
+落地史:2026-08-27 03:40 -03 首次 shim 化 → 04:2x 被本仓库会话 `git add -A` 误扫入提交 88392cf
+→ 04:45 还原全量实现(25e93db) → 05:5x -03 按指令单正式重落地,`bash corpus/selftest.sh`
+复跑 44/44 全绿;shim 化前后 step1 重跑输出与在途批次逐字节一致(差异仅 step1b 和平面产物)。
+注意:`git add -A` 前请确认这三个文件的 shim 状态是要保留的交付态,勿再误扫误标。

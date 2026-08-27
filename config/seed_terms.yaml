@@ -1,44 +1,48 @@
-# 种子术语词典 v2(2026-08-26 创始人拍板:补充指令A,优先级最高)
-# 总原则:𬌗(U+2C317)=咬合正字;「合」=输入受限时期代称(正字优先);「颌」=颌骨/髁突概念,与 𬌗/合 是两回事
-# canonical = 权威写法(正字);variants = 已确认的代称/ASR 误写;代码零硬编码,全部落本文件
-version: seed-v2-2026-08-26
+# 种子术语词典 v3(2026-08-27 创始人拍板:业务惯用写法为 canonical,取代 v2 正字优先口径)
+# 总原则:canonical = 业务惯用写法;𬌗(U+2C317,牙+合)=咬合正字,列入 variants/note 备查——
+#   CJK Ext F 生僻字,手机端有豆腐块渲染风险,清洗稿与全部下游产物不得出现;
+# 「颌」(页+合)=颌骨/髁突概念,与 合/𬌗 是两回事(颌学=Gnathology、颌位=下颌骨位置)。
+# canonical = 权威写法;variants = 已确认的代称/ASR 误写/正字;代码零硬编码,全部落本文件
+version: seed-v3-2026-08-27
 terms:
   # --- 词族:学科 ---
-  - {canonical: 𬌗学, variants: [合学, 和学, 核学], category: 学科, note: 「颌学」不是它的变体}
+  - {canonical: 合学, variants: [和学, 核学, 𬌗学], category: 学科, note: 𬌗学=正字备查;「颌学」不是它的变体}
   - {canonical: 颌学, variants: [], category: 学科, note: Gnathology 另一学科;独立 canonical,不自动替换}
-  - {canonical: 功能𬌗学, variants: [功能合学, 功能颌学], category: 学科}
-  - {canonical: 维也纳𬌗学, variants: [维也纳合学, 维也纳颌学], category: 学科}
-  - {canonical: 功能𬌗学早矫, variants: [功能合学早矫], category: 学科, note: 团队/体系名引用}
-  # --- 机构专名(唯一保留「合」的词,创始人点名) ---
+  - {canonical: 功能合学, variants: [功能颌学, 功能𬌗学], category: 学科, note: 功能𬌗学=正字备查}
+  - {canonical: 维也纳合学, variants: [维也纳颌学, 维也纳𬌗学], category: 学科, note: 维也纳𬌗学=正字备查}
+  - {canonical: 功能合学早矫, variants: [功能𬌗学早矫], category: 学科, note: 品牌公开名(不动);功能𬌗学早矫=正字备查}
+  # --- 机构专名(创始人点名保留) ---
   - {canonical: 至简合学, variants: [智简合学, 质检合学, 至简颌学, 智简颌学], category: 机构}
   # --- 平面 ---
-  - {canonical: 𬌗平面, variants: [合平面], category: 解剖, note: 「和平面」不自动替换(连词歧义),16 处语境终审处置见 step1b;废除旧「颌平面」条目}
+  - {canonical: 颌平面, variants: [合平面, 𬌗平面], category: 解剖, note: 2026-08-27 拍板恢复「颌平面」为 canonical(业务惯用);𬌗平面=正字备查;「和平面」不自动替换(连词歧义),16 处语境终审处置见 step1b}
   - {canonical: 咬合平面, variants: [], category: 解剖, note: 同义词条,兼作自动守卫(防「咬合平面」被拆)}
   - {canonical: 下颌平面, variants: [], category: 解剖, note: 颌=骨,不动}
   # --- 复合词 ---
-  - {canonical: 深覆𬌗, variants: [深覆合, 深覆颌, 深复合], category: 诊断}
-  - {canonical: 覆𬌗, variants: [覆合], category: 诊断}
-  - {canonical: 反𬌗, variants: [反合, 反颌], category: 诊断}
-  - {canonical: 开𬌗, variants: [开合, 开颌], category: 诊断}
-  - {canonical: 锁𬌗, variants: [锁合, 锁颌], category: 诊断}
-  - {canonical: 错𬌗畸形, variants: [错合畸形, 错颌畸形, 撮合畸形], category: 诊断}
-  - {canonical: 建𬌗, variants: [建合], category: 临床}
-  - {canonical: 对𬌗, variants: [对合], category: 临床}
-  - {canonical: 牙𬌗, variants: [牙合], category: 临床, note: 废除旧「牙合畸形」canonical}
+  - {canonical: 深覆合, variants: [深覆颌, 深复合, 深覆𬌗], category: 诊断, note: 深覆𬌗=正字备查}
+  - {canonical: 覆合, variants: [覆𬌗], category: 诊断, note: 覆𬌗=正字备查}
+  - {canonical: 反合, variants: [反颌, 反𬌗], category: 诊断, note: 反𬌗=正字备查}
+  - {canonical: 开合, variants: [开颌, 开𬌗], category: 诊断, note: 开𬌗=正字备查}
+  - {canonical: 锁合, variants: [锁颌, 锁𬌗], category: 诊断, note: 锁𬌗=正字备查}
+  - {canonical: 错合畸形, variants: [错颌畸形, 撮合畸形, 错𬌗畸形], category: 诊断, note: 错𬌗畸形=正字备查}
+  - {canonical: 错合, variants: [错𬌗], category: 诊断, note: 错合畸形单用/简称(LLM 产物中出现);错𬌗=正字备查}
+  - {canonical: 建合, variants: [建𬌗], category: 临床, note: 建𬌗=正字备查}
+  - {canonical: 对合, variants: [对𬌗], category: 临床, note: 对𬌗=正字备查}
+  - {canonical: 牙合, variants: [牙𬌗], category: 临床, note: 牙𬌗=正字备查;废除旧「牙合畸形」canonical}
+  - {canonical: 合面, variants: [𬌗面], category: 解剖, note: 咬合面;𬌗面=正字备查;exclude 已剔 (合面,和面) 误对,不受影响}
   # --- 位置系 ---
-  - {canonical: 𬌗位, variants: [合位], category: 诊断, note: 99 处全部咬合位置义、零撞车(创始人核定)}
+  - {canonical: 合位, variants: [𬌗位], category: 诊断, note: 99 处全部咬合位置义、零撞车(创始人核定);𬌗位=正字备查}
   - {canonical: 颌位, variants: [], category: 诊断, note: 牙尖交错位/正中关系位属颌位概念;移除旧 合位/和位 变体,撤销「和位→颌位」(颌位置污染元凶)}
   - {canonical: 牙尖交错位, variants: [], category: 诊断, note: 颌=骨,不动}
   - {canonical: 正中关系位, variants: [], category: 诊断, note: 颌=骨,不动}
   - {canonical: 正中关系, variants: [], category: 诊断}
   - {canonical: 咬合重建, variants: [], category: 临床, note: 不动}
   # --- 知识条目(本语料 0 处,入词典作知识资产规范) ---
-  - {canonical: 颌位性错𬌗畸形, variants: [], category: 知识条目, note: 沈刚体系}
+  - {canonical: 颌位性错合畸形, variants: [颌位性错𬌗畸形], category: 知识条目, note: 沈刚体系;颌位性错𬌗畸形=正字备查}
   - {canonical: 颌位正畸, variants: [], category: 知识条目, note: 沈刚体系}
   - {canonical: 颌位重建, variants: [], category: 知识条目, note: 沈刚体系}
   - {canonical: 正雅GS, variants: [], category: 知识条目, note: 沈刚/正雅}
   # --- 纠错 ---
-  - {canonical: 牙面畸形, variants: [], category: 临床, note: 训练营独立概念(200 处):从解决错𬌗畸形上升到牙面畸形;撤销其作为「牙合畸形」变体的旧映射}
+  - {canonical: 牙面畸形, variants: [], category: 临床, note: 训练营独立概念(200 处):从解决错合畸形(正字错𬌗畸形)上升到牙面畸形;撤销其作为「牙合畸形」变体的旧映射}
   # --- 保留(颌=骨,不动) ---
   - {canonical: 上颌, variants: [上颚, 上合], category: 解剖}
   - {canonical: 下颌, variants: [下颚, 下合], category: 解剖}

@@ -95,15 +95,18 @@ check("step1 替换完成率 100%(守卫口径)", not leftover,
 for f in ("pinyin_candidates.csv", "adjudication.md", "number_unit_report.md", "cross_check.md"):
     check(f"step1 {f} 落盘", (s1 / f).stat().st_size > 100)
 
-# --- step1 补充指令A(术语口径 v2)检查项 ---
+# --- step1 术语口径 v3(2026-08-27 拍板:业务惯用写法 canonical,𬌗 正字退役备查)检查项 ---
 canon_list = [t.get("canonical") for t in terms]
-check("v2 知识条目入词典", all(k in canon_list for k in ("颌位性错𬌗畸形", "颌位正畸", "颌位重建", "正雅GS")))
-check("v2 废除 颌平面/牙合畸形 canonical", "颌平面" not in canon_list and "牙合畸形" not in canon_list)
-check("v2 「颌学」不作任何词条变体", all("颌学" not in (t.get("variants") or []) for t in terms))
+check("v3 知识条目入词典", all(k in canon_list for k in ("颌位性错合畸形", "颌位正畸", "颌位重建", "正雅GS")))
+check("v3 canonical 无 𬌗(正字仅 variants/note 备查)",
+      not any("𬌗" in c for c in canon_list),
+      str([c for c in canon_list if "𬌗" in c]))
+check("v3 颌平面/牙合畸形 canonical 口径", "颌平面" in canon_list and "牙合畸形" not in canon_list)
+check("v3 「颌学」不作任何词条变体", all("颌学" not in (t.get("variants") or []) for t in terms))
 _purged = {"个颌骨","个颌骨错","个颌骨错位","中尖对","他的颌","他的颌骨","向的颌","向的颌骨","向的颌骨错",
            "向的颌骨错位","对尖","尖对","是颌骨","有颌骨","有颌骨错","有颌骨错位","的前段","的颌骨",
            "的颌骨错","的颌骨错位","这个颌骨","颌骨发","颌骨发育异","颌骨的","颌骨错位的","颌骨错位的方","有颌"}
-check("v2 碎片词条已剔出词典", not (_purged & set(canon_list)), str(_purged & set(canon_list)))
+check("v3 碎片词条已剔出词典", not (_purged & set(canon_list)), str(_purged & set(canon_list)))
 def _count_jwp():
     n = 0
     for p in cleaned:
@@ -118,7 +121,24 @@ def _count_jwp():
             i += 1
     return n
 jp = _count_jwp()
-check("v2 清洗稿无「颌位置」污染(=0,上/下颌位置除外)", jp == 0, f"{jp} 处")
+check("v3 清洗稿无「颌位置」污染(=0,上/下颌位置除外)", jp == 0, f"{jp} 处")
+# 𬌗 字零出现:清洗稿 + 全部下游产物(卡片/题库/讲义/chunks)
+_ortho_n = all_clean.count("𬌗")
+check("v3 清洗稿 𬌗 字 0 出现", _ortho_n == 0, f"{_ortho_n} 处")
+def _ortho_in_products():
+    n, files = 0, []
+    for sub, pats in (("step2", ("cards.jsonl", "conflicts.md")),
+                      ("step5", ("quiz/*.json", "handout/*.md")),
+                      ("step4", ("chunks.jsonl",))):
+        for pat in pats:
+            for f in (RUN / sub).glob(pat):
+                c = f.read_text(encoding="utf-8").count("𬌗")
+                if c:
+                    n += c
+                    files.append(f"{sub}/{f.name}:{c}")
+    return n, files
+_pn, _pf = _ortho_in_products()
+check("v3 下游产物 𬌗 字 0 出现(卡片/题库/讲义/chunks)", _pn == 0, str(_pf[:5]) if _pf else "0 处")
 def _ortho_residual(word, allow_prev=()):
     n = 0
     for p in cleaned:
@@ -132,24 +152,25 @@ def _ortho_residual(word, allow_prev=()):
                 n += 1
             i += 1
     return n
-_ortho = {"合学": ("简",), "合平面": ("咬",), "合位": (), "深覆合": (), "覆合": (), "反合": (),
-          "开合": (), "锁合": (), "错合畸形": (), "建合": (), "对合": (), "牙合": ()}
-_res = {w: _ortho_residual(w, ap) for w, ap in _ortho.items()}
-_res = {w: n for w, n in _res.items() if n}
-check("v2 正字化全量(除至简合学/咬合平面)", not _res, str(_res) if _res else "0 残留")
+_hp_res = _ortho_residual("合平面", ("咬",))
+check("v3 合平面 0 残留(咬合平面除外)", _hp_res == 0, f"{_hp_res} 处")
+# canonical 分布正确:颌平面/功能合学/至简合学/合学 均应实际出现
+_dist = {w: all_clean.count(w) for w in ("颌平面", "功能合学", "至简合学", "合学")}
+check("v3 canonical 分布(颌平面/功能合学/至简合学/合学 均>0)",
+      all(n > 0 for n in _dist.values()), str(_dist))
 _raw_hev = sum(Path(r["transcript_path"]).read_text(encoding="utf-8").count("颌学")
                for r in master if r["transcript_path"])
 _cl_hev = sum(p.read_text(encoding="utf-8").count("颌学") for p in cleaned)
-check("v2 「颌学」不被替换(原稿=清洗稿计数)", _raw_hev == _cl_hev, f"raw={_raw_hev} cleaned={_cl_hev}")
+check("v3 「颌学」不被替换(原稿=清洗稿计数)", _raw_hev == _cl_hev, f"raw={_raw_hev} cleaned={_cl_hev}")
 _disp = RUN / "step1b" / "disposition.json"
 _hp_md = RUN / "step1b" / "hepingmian_disposition.md"
 if _disp.exists():
     _d = json.loads(_disp.read_text())
     _remain = sum(p.read_text(encoding="utf-8").count("和平面") for p in cleaned)
-    check("v2 和平面逐处处置落盘且计数一致", _hp_md.exists() and _remain == _d["kept"],
+    check("v3 和平面逐处处置落盘且计数一致", _hp_md.exists() and _remain == _d["kept"],
           f"总 {_d['total']} 保留 {_d['kept']} 替换 {_d['fixed']} 稿内余 {_remain}")
 else:
-    check("v2 和平面逐处处置落盘且计数一致", False, "disposition.json 缺失")
+    check("v3 和平面逐处处置落盘且计数一致", False, "disposition.json 缺失")
 
 # --- step2 知识卡片 ---
 s2 = RUN / "step2"

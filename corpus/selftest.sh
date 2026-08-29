@@ -1,5 +1,7 @@
 #!/bin/bash
 # selftest.sh — 对 data/latest 指向的运行逐条核查指令单验收标准。任一 FAIL 退出码非 0。
+# 依赖 NAS 原稿的检查项(颌学原稿计数)在 NAS 不可读(OSError/PermissionError)时降级 SKIP
+# (不计失败,exit 0);NAS 恢复后原版复跑自动回到实测计数。禁止删检查项或无条件 SKIP。
 set -uo pipefail
 cd "$(dirname "$0")/.."
 .venv/bin/python - <<'PYEOF'
@@ -16,6 +18,11 @@ results = []
 def check(name, ok, detail=""):
     results.append((name, bool(ok), detail))
     print(("✅" if ok else "❌"), name, ("| " + str(detail)[:120] if detail else ""))
+
+def skip(name, detail=""):
+    # 环境依赖不可用(如 NAS 原稿)时降级:ok 记 None,汇总单列 SKIP、不计失败
+    results.append((name, None, detail))
+    print("⏭️ SKIP", name, ("| " + str(detail)[:120] if detail else ""))
 
 print(f"== selftest 运行目录: {RUN}")
 master = json.loads((RUN / "step0" / "courses_master.json").read_text())
@@ -158,10 +165,17 @@ check("v3 合平面 0 残留(咬合平面除外)", _hp_res == 0, f"{_hp_res} 处
 _dist = {w: all_clean.count(w) for w in ("颌平面", "功能合学", "至简合学", "合学")}
 check("v3 canonical 分布(颌平面/功能合学/至简合学/合学 均>0)",
       all(n > 0 for n in _dist.values()), str(_dist))
-_raw_hev = sum(Path(r["transcript_path"]).read_text(encoding="utf-8").count("颌学")
-               for r in master if r["transcript_path"])
+_raw_hev, _nas_err = None, ""
+try:
+    _raw_hev = sum(Path(r["transcript_path"]).read_text(encoding="utf-8").count("颌学")
+                   for r in master if r["transcript_path"])
+except OSError as e:  # NAS SMB 僵死期 PermissionError 等:降级 SKIP,恢复后原版复跑回实测
+    _nas_err = f"{type(e).__name__}: {e}"[:80]
 _cl_hev = sum(p.read_text(encoding="utf-8").count("颌学") for p in cleaned)
-check("v3 「颌学」不被替换(原稿=清洗稿计数)", _raw_hev == _cl_hev, f"raw={_raw_hev} cleaned={_cl_hev}")
+if _raw_hev is None:
+    skip("v3 「颌学」不被替换(原稿=清洗稿计数)", f"NAS 原稿不可读待实测 | {_nas_err}")
+else:
+    check("v3 「颌学」不被替换(原稿=清洗稿计数)", _raw_hev == _cl_hev, f"raw={_raw_hev} cleaned={_cl_hev}")
 _disp = RUN / "step1b" / "disposition.json"
 _hp_md = RUN / "step1b" / "hepingmian_disposition.md"
 if _disp.exists():
@@ -251,7 +265,8 @@ for step in ["step0_reconcile", "step1_terms", "step1b_hepingmian", "step2_cards
     p = ROOT / "corpus" / f"{step}.py"
     check(f"notify 失败分支: {step}", p.exists() and "common.notify" in p.read_text())
 
-fails = [r for r in results if not r[1]]
-print(f"\n== selftest 结果: {len(results) - len(fails)}/{len(results)} 通过, {len(fails)} 失败")
+fails = [r for r in results if r[1] is False]  # SKIP(ok=None)不计失败
+nskips = sum(1 for r in results if r[1] is None)
+print(f"\n== selftest 结果: {len(results) - len(fails) - nskips} 通过 + {nskips} SKIP, {len(fails)} 失败")
 sys.exit(1 if fails else 0)
 PYEOF

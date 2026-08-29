@@ -36,3 +36,22 @@ normalize/similarity/assign_1to1)已抽取至 corpus-hub(`~/Claude/projects/corp
 → 04:45 还原全量实现(25e93db) → 05:5x -03 按指令单正式重落地,`bash corpus/selftest.sh`
 复跑 44/44 全绿;shim 化前后 step1 重跑输出与在途批次逐字节一致(差异仅 step1b 和平面产物)。
 注意:`git add -A` 前请确认这三个文件的 shim 状态是要保留的交付态,勿再误扫误标。
+
+## 词典口径 v3(20260826-01 rework-1,创始人 2026-08-27 拍板)
+
+- **canonical = 业务惯用写法**(合学/功能合学/维也纳合学/颌平面/合位…);`𬌗`(U+2C317)
+  系正字全部退役入 variants/note 备查——CJK Ext F 生僻字,手机端有豆腐块渲染风险,
+  清洗稿与全部下游产物不得出现(实测 0,含 step2 卡片/step4 chunks/step5 题库讲义)。
+- corpus-hub 侧 `config/dict/he-xue.yaml` 已同步 v3(其仓 92b792e);其 `general.yaml`
+  的 𬌗位/𬌗位关系 canonical 为服务妙记源的独立副本,有意未同步,与本仓无共享单源。
+- `corpus/migrate_canonical.py`:一次性口径迁移工具(词典 canonical 变更后,step2/step5
+  LLM 产物按 dict 中含退役字的 variant→canonical 最长优先机械替换,quote 定位不变式保持;
+  step1/1b/4 由管道重跑再生)。幂等:再跑替换数=0。
+
+## 提交留痕
+
+- `3acd23f`(2026-08-27 21:47,提交信息"auto: 每日自动备份")实际吸收了 20260826-01 rework-1
+  的修复文件:config/seed_terms.yaml(v3)、config/step1_guards.yaml、corpus/migrate_canonical.py、
+  corpus/selftest.sh(v3 检查项)、corpus/step1b_hepingmian.py——内容经核为交付所需且完整,
+  此后工作区 clean,不做 revert;信息与内容不符系自动备份吸改所致,特此留痕
+  (与 88392cf 同类教训:提交前逐文件核对,勿信既有提交信息)。
